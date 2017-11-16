@@ -1,6 +1,6 @@
 #!/bin/bash
 set -ex
 
-go build -o apps-metrics-plugin main.go
+go build -o bin/apps-metrics-plugin cmd/plugin/apps_metrics.go
 cf uninstall-plugin AppsMetricsPlugin
-cf install-plugin apps-metrics-plugin -f
+cf install-plugin bin/apps-metrics-plugin -f

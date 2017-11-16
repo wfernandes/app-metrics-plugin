@@ -14,9 +14,15 @@ func (c *AppsMetricsPlugin) Run(cliConnection plugin.CliConnection, args []strin
 		return
 	}
 
-	if args[0] == "apps-metrics" {
-		fmt.Println("Running the apps-metrics plugin")
+	appName := args[1]
+	app, err := cliConnection.GetApp(appName)
+	if err != nil {
+		fmt.Println(err.Error())
 	}
+	for _, route := range app.Routes {
+		fmt.Println(route.Domain.Name)
+	}
+
 }
 
 func (c *AppsMetricsPlugin) GetMetadata() plugin.PluginMetadata {
