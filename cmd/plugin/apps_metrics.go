@@ -1,14 +1,18 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"code.cloudfoundry.org/cli/plugin"
+	"github.com/wfernandes/apps-metrics-plugin/pkg/agent"
 )
 
-type AppsMetricsPlugin struct{}
+type AppsMetricsPlugin struct {
+}
 
 func (c *AppsMetricsPlugin) Run(cliConnection plugin.CliConnection, args []string) {
+
 	if len(args) < 2 {
 		fmt.Println("APP_NAME is required")
 		return
@@ -19,8 +23,24 @@ func (c *AppsMetricsPlugin) Run(cliConnection plugin.CliConnection, args []strin
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-	for _, route := range app.Routes {
-		fmt.Println(route.Domain.Name)
+
+	// TODO: Add a test for this erroring out
+	token, err := cliConnection.AccessToken()
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	client := agent.New(&app, token)
+	metrics, err := client.GetMetrics()
+	if err != nil {
+		fmt.Printf("unable to get metrics: %s\n", err)
+	}
+	for _, m := range metrics {
+		// TODO: Add a test to handle this err
+		bytes, err := json.Marshal(m)
+		if err != nil {
+			fmt.Printf("unable to marshal metrics: %s\n", err)
+		}
+		fmt.Printf("%s\n", string(bytes))
 	}
 
 }
