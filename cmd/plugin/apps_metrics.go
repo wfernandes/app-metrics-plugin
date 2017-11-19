@@ -2,47 +2,85 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
+	"os"
 
+	"code.cloudfoundry.org/cli/cf/flags"
+	"code.cloudfoundry.org/cli/cf/terminal"
+	"code.cloudfoundry.org/cli/cf/trace"
 	"code.cloudfoundry.org/cli/plugin"
 	"github.com/wfernandes/apps-metrics-plugin/pkg/agent"
 )
 
 type AppsMetricsPlugin struct {
+	ui terminal.UI
 }
 
 func (c *AppsMetricsPlugin) Run(cliConnection plugin.CliConnection, args []string) {
+	traceLogger := trace.NewLogger(os.Stdout, true, os.Getenv("CF_TRACE"), "")
+	c.ui = terminal.NewUI(os.Stdin, os.Stdout, terminal.NewTeePrinter(os.Stdout), traceLogger)
 
-	if len(args) < 2 {
-		fmt.Println("APP_NAME is required")
+	switch args[0] {
+	case "apps-metrics":
+
+		if len(args) < 2 {
+			c.ui.Say(c.GetMetadata().Commands[0].UsageDetails.Usage)
+			return
+		}
+
+		c.getMetrics(cliConnection, args)
+	case "CLI-MESSAGE-UNINSTALL":
+		c.ui.Say("Thank you for using apps-metrics")
+	}
+
+}
+
+func (c *AppsMetricsPlugin) getMetrics(cliConnection plugin.CliConnection, args []string) {
+	app, err := cliConnection.GetApp(args[1])
+	if err != nil {
+		c.ui.Failed(err.Error())
 		return
 	}
 
-	appName := args[1]
-	app, err := cliConnection.GetApp(appName)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-
-	// TODO: Add a test for this erroring out
 	token, err := cliConnection.AccessToken()
 	if err != nil {
-		fmt.Println(err.Error())
-	}
-	client := agent.New(&app, token)
-	metrics, err := client.GetMetrics()
-	if err != nil {
-		fmt.Printf("unable to get metrics: %s\n", err)
-	}
-	for _, m := range metrics {
-		// TODO: Add a test to handle this err
-		bytes, err := json.Marshal(m)
-		if err != nil {
-			fmt.Printf("unable to marshal metrics: %s\n", err)
-		}
-		fmt.Printf("%s\n", string(bytes))
+		c.ui.Failed(err.Error())
+		return
 	}
 
+	fc, err := parseArguments(args)
+	if err != nil {
+		c.ui.Failed(err.Error())
+		return
+	}
+
+	var client *agent.Agent
+	if fc.IsSet("endpoint") {
+		client = agent.New(&app, token, agent.WithMetricsPath(fc.String("endpoint")))
+	} else {
+		client = agent.New(&app, token)
+	}
+
+	metrics, err := client.GetMetrics()
+	if err != nil {
+		c.ui.Failed("unable to get metrics: %s\n", err)
+	}
+
+	bytes, err := json.Marshal(metrics)
+	if err != nil {
+		c.ui.Warn("unable to marshal metrics: %s\n", err)
+	}
+	c.ui.Say("%s\n", string(bytes))
+}
+
+func parseArguments(args []string) (flags.FlagContext, error) {
+	fc := flags.New()
+	fc.NewStringFlag("endpoint", "e", "Path of the metrics endpoint")
+
+	err := fc.Parse(args...)
+	if err != nil {
+		return nil, err
+	}
+	return fc, nil
 }
 
 func (c *AppsMetricsPlugin) GetMetadata() plugin.PluginMetadata {
@@ -64,7 +102,7 @@ func (c *AppsMetricsPlugin) GetMetadata() plugin.PluginMetadata {
 				HelpText: "Hits the metrics endpoint across all your app instances",
 
 				UsageDetails: plugin.Usage{
-					Usage: "apps-metrics\n   cf apps-metrics APP_NAME",
+					Usage: "cf apps-metrics APP_NAME",
 					Options: map[string]string{
 						"endpoint": "metrics endpoint",
 					},

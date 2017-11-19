@@ -114,9 +114,9 @@ func (a *Agent) buildURL() (string, error) {
 	route := a.app.Routes[0]
 	var url string
 	if route.Host == "" {
-		url = route.Domain.Name + a.path
+		url = "http://" + route.Domain.Name + a.path
 	} else {
-		url = route.Host + "." + route.Domain.Name + a.path
+		url = "http://" + route.Host + "." + route.Domain.Name + a.path
 	}
 	return url, nil
 }

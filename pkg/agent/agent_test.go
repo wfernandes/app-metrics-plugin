@@ -3,11 +3,9 @@ package agent_test
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/http/httptest"
 	"sync"
 
 	"code.cloudfoundry.org/cli/plugin/models"
@@ -18,11 +16,6 @@ import (
 )
 
 var _ = Describe("Agent", func() {
-
-	var (
-		mux *http.ServeMux
-		ts  *httptest.Server
-	)
 
 	It("returns error upon unsuccessful request", func() {
 		fakeApp := &plugin_models.GetAppModel{
@@ -79,7 +72,7 @@ var _ = Describe("Agent", func() {
 		a := agent.New(fakeApp, "some-token", agent.WithClient(fakeClient))
 		_, err := a.GetMetrics()
 		Expect(err).ToNot(HaveOccurred())
-		Expect(fakeClient.LastRequest().URL.String()).To(Equal("domain.cf-app.com/debug/metrics"))
+		Expect(fakeClient.LastRequest().URL.String()).To(Equal("http://domain.cf-app.com/debug/metrics"))
 	})
 
 	It("makes request using host and domain name", func() {
@@ -102,7 +95,7 @@ var _ = Describe("Agent", func() {
 		a := agent.New(fakeApp, "some-token", agent.WithClient(fakeClient))
 		_, err := a.GetMetrics()
 		Expect(err).ToNot(HaveOccurred())
-		Expect(fakeClient.LastRequest().URL.String()).To(Equal("my-app-host.domain.cf-app.com/debug/metrics"))
+		Expect(fakeClient.LastRequest().URL.String()).To(Equal("http://my-app-host.domain.cf-app.com/debug/metrics"))
 	})
 
 	It("returns response body upon successful request", func() {
@@ -195,14 +188,7 @@ var _ = Describe("Agent", func() {
 	})
 
 	It("sends GET request with X-CF-APP-INSTANCE header for app with multiple instances", func() {
-		mux = http.NewServeMux()
-		ts = httptest.NewServer(mux)
-		defer ts.Close()
-		requests := make([]*http.Request, 0, 3)
-		mux.HandleFunc("/debug/metrics", func(w http.ResponseWriter, r *http.Request) {
-			requests = append(requests, r)
-			fmt.Fprintf(w, "request %d", len(requests))
-		})
+		fakeClient := NewFakeClient()
 		fakeApp := &plugin_models.GetAppModel{
 			Guid: "some-app-guid",
 			Instances: []plugin_models.GetApp_AppInstanceFields{
@@ -219,19 +205,19 @@ var _ = Describe("Agent", func() {
 			Routes: []plugin_models.GetApp_RouteSummary{
 				{
 					Domain: plugin_models.GetApp_DomainFields{
-						Name: ts.URL,
+						Name: "domain.cf-app.com",
 					},
 				},
 			},
 		}
-		a := agent.New(fakeApp, "some-token")
+		a := agent.New(fakeApp, "some-token", agent.WithClient(fakeClient))
 
 		_, err := a.GetMetrics()
 
 		Expect(err).ToNot(HaveOccurred())
-		Eventually(requests).Should(HaveLen(2))
+		Eventually(fakeClient.Requests).Should(HaveLen(2))
 		var headers []string
-		for _, r := range requests {
+		for _, r := range fakeClient.Requests() {
 			headers = append(headers, r.Header.Get("X-CF-APP-INSTANCE"))
 		}
 		Expect(headers).To(ConsistOf("some-app-guid:0", "some-app-guid:2"))
@@ -240,32 +226,40 @@ var _ = Describe("Agent", func() {
 })
 
 type FakeClient struct {
-	mu      sync.Mutex
-	request *http.Request
-	body    io.ReadCloser
-	err     error
+	mu       sync.Mutex
+	requests []*http.Request
+	body     io.ReadCloser
+	err      error
 }
 
 func NewFakeClient() *FakeClient {
 	return &FakeClient{
-		body: ioutil.NopCloser(bytes.NewBufferString("some default response")),
+		requests: make([]*http.Request, 0),
+		body:     ioutil.NopCloser(bytes.NewBufferString("some default response")),
 	}
 }
 
 func (f *FakeClient) Do(r *http.Request) (*http.Response, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.request = r
+	f.requests = append(f.requests, r)
 	return &http.Response{
 		Body: f.body,
 	}, f.err
+}
+
+func (f *FakeClient) Requests() []*http.Request {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	return f.requests
 }
 
 func (f *FakeClient) LastRequest() *http.Request {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
-	return f.request
+	return f.requests[len(f.requests)-1]
 }
 
 func (f *FakeClient) SetError(e error) {
