@@ -17,7 +17,7 @@ import (
 
 var _ = Describe("AppsMetrics Integration", func() {
 
-	It("returns metrics for a specific endpoint", func() {
+	It("returns fallback output style when presentation fails", func() {
 		endpoint := "/myspecific/metrics/endpoint"
 		fakeCliConnection := &pluginfakes.FakeCliConnection{}
 		mux := http.NewServeMux()
@@ -26,16 +26,42 @@ var _ = Describe("AppsMetrics Integration", func() {
 		mux.HandleFunc(endpoint, func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintf(w, "this is my metrics output")
 		})
+
 		// trimming the scheme because we'll build the url back from app model
 		model := buildAppModel(strings.TrimPrefix(ts.URL, "http://"))
 		fakeCliConnection.GetAppReturns(model, nil)
-		appsMetricsPlugin := &AppsMetricsPlugin{}
 
+		appsMetricsPlugin := &AppsMetricsPlugin{}
 		output := CaptureOutput(func() {
 			appsMetricsPlugin.Run(fakeCliConnection, []string{"apps-metrics", "some-app", "-endpoint", endpoint})
 		})
 
 		Expect(output).To(ContainElement("[{\"Instance\":0,\"Output\":\"this is my metrics output\",\"Error\":\"\"}]"))
+	})
+
+	It("returns templated output style", func() {
+		endpoint := "/myspecific/metrics/endpoint"
+		fakeCliConnection := &pluginfakes.FakeCliConnection{}
+		mux := http.NewServeMux()
+		ts := httptest.NewServer(mux)
+		defer ts.Close()
+		mux.HandleFunc(endpoint, func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintf(w, `{"ingress.received": 12345,"ingress.sent": 12345}`)
+		})
+
+		// trimming the scheme because we'll build the url back from app model
+		model := buildAppModel(strings.TrimPrefix(ts.URL, "http://"))
+		fakeCliConnection.GetAppReturns(model, nil)
+
+		appsMetricsPlugin := &AppsMetricsPlugin{}
+		output := CaptureOutput(func() {
+			appsMetricsPlugin.Run(fakeCliConnection, []string{"apps-metrics", "some-app", "-endpoint", endpoint})
+		})
+
+		Expect(output).To(ContainElement("\tInstance: 0"))
+		Expect(output).To(ContainElement("\tMetrics:"))
+		Expect(output).To(ContainElement("\t  ingress.received: 12345"))
+		Expect(output).To(ContainElement("\t  ingress.sent: 12345"))
 	})
 })
 

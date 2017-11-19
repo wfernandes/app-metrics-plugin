@@ -10,6 +10,7 @@ import (
 	"code.cloudfoundry.org/cli/plugin"
 	"github.com/wfernandes/apps-metrics-plugin/pkg/agent"
 	"github.com/wfernandes/apps-metrics-plugin/pkg/parser"
+	"github.com/wfernandes/apps-metrics-plugin/pkg/views"
 )
 
 type AppsMetricsPlugin struct {
@@ -36,6 +37,7 @@ func (c *AppsMetricsPlugin) Run(cliConnection plugin.CliConnection, args []strin
 }
 
 func (c *AppsMetricsPlugin) getMetrics(cliConnection plugin.CliConnection, args []string) {
+	// Verify we have access to the app
 	app, err := cliConnection.GetApp(args[1])
 	if err != nil {
 		c.ui.Failed(err.Error())
@@ -48,12 +50,17 @@ func (c *AppsMetricsPlugin) getMetrics(cliConnection plugin.CliConnection, args 
 		return
 	}
 
+	// Parse any flags that were provided
 	fc, err := parseArguments(args)
 	if err != nil {
 		c.ui.Failed(err.Error())
 		return
 	}
 
+	// Create the client that will GET the metrics. Currently, it is fixed
+	// to Expvar style but other parsers can be written. For example, Prometheus.
+	// We are forcing to ignore the `cmdline` and `memstats` properties as they
+	// clutter the output.
 	var client *agent.Agent
 	if fc.IsSet("endpoint") {
 		client = agent.New(
@@ -68,14 +75,26 @@ func (c *AppsMetricsPlugin) getMetrics(cliConnection plugin.CliConnection, args 
 			agent.WithParser(parser.NewExpvar([]string{"cmdline", "memstats"})))
 	}
 
+	// Make the request(s) and get the data
 	metrics, err := client.GetMetrics()
 	if err != nil {
 		c.ui.Failed("unable to get metrics: %s\n", err)
 	}
 
+	// Present the data
+	defaultView := views.New()
+	err = defaultView.Present(metrics)
+	if err != nil {
+		c.ui.Warn(err.Error())
+		c.printDefault(metrics)
+	}
+}
+
+func (c *AppsMetricsPlugin) printDefault(metrics []agent.MetricOuput) {
 	bytes, err := json.Marshal(metrics)
 	if err != nil {
 		c.ui.Warn("unable to marshal metrics: %s\n", err)
+		return
 	}
 	c.ui.Say("%s\n", string(bytes))
 }
