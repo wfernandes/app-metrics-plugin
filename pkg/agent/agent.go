@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/cli/plugin/models"
+	"github.com/wfernandes/apps-metrics-plugin/pkg/parser"
 )
 
 type MetricOuput struct {
@@ -20,11 +21,16 @@ type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
+type Parser interface {
+	Parse([]byte) ([]byte, error)
+}
+
 type Agent struct {
 	app    *plugin_models.GetAppModel
 	path   string
 	token  string
 	client HTTPClient
+	parser Parser
 }
 
 type AgentOpt func(*Agent)
@@ -32,6 +38,12 @@ type AgentOpt func(*Agent)
 func WithClient(c HTTPClient) AgentOpt {
 	return func(a *Agent) {
 		a.client = c
+	}
+}
+
+func WithParser(p Parser) AgentOpt {
+	return func(a *Agent) {
+		a.parser = p
 	}
 }
 
@@ -47,6 +59,7 @@ func New(model *plugin_models.GetAppModel, token string, opts ...AgentOpt) *Agen
 		path:   "/debug/metrics",
 		token:  token,
 		client: &http.Client{Timeout: 10 * time.Second},
+		parser: parser.NewNoOp(),
 	}
 
 	for _, o := range opts {
@@ -100,9 +113,14 @@ func (a *Agent) doRequest(request *http.Request, i int) MetricOuput {
 			Error:    err.Error(),
 		}
 	}
+
+	parsed, err := a.parser.Parse(bytes)
+	if err != nil {
+		parsed = bytes
+	}
 	return MetricOuput{
 		Instance: i,
-		Output:   string(bytes),
+		Output:   string(parsed),
 	}
 }
 

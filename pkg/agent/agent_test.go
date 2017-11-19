@@ -3,6 +3,7 @@ package agent_test
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -223,7 +224,99 @@ var _ = Describe("Agent", func() {
 		Expect(headers).To(ConsistOf("some-app-guid:0", "some-app-guid:2"))
 	})
 
+	It("calls parser for successful response", func() {
+		fakeClient := NewFakeClient()
+		fakeClient.SetResponse("some response body")
+
+		fakeApp := &plugin_models.GetAppModel{
+			Instances: []plugin_models.GetApp_AppInstanceFields{
+				{
+					State: "running",
+				},
+			},
+			Routes: []plugin_models.GetApp_RouteSummary{
+				{
+					Domain: plugin_models.GetApp_DomainFields{
+						Name: "domain.cf-app.com",
+					},
+				},
+			},
+		}
+		fakeParser := NewFakeParser()
+
+		a := agent.New(fakeApp, "some-token", agent.WithClient(fakeClient), agent.WithParser(fakeParser))
+		output, err := a.GetMetrics()
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(string(fakeParser.ParseCalledWith())).To(BeEquivalentTo("some response body"))
+		Expect(output).To(HaveLen(1))
+		Expect(output[0].Output).To(Equal("parsed some response body"))
+	})
+
+	It("returns original unparsed output if parser returns an error", func() {
+		fakeClient := NewFakeClient()
+		fakeClient.SetResponse("some response body")
+
+		fakeApp := &plugin_models.GetAppModel{
+			Instances: []plugin_models.GetApp_AppInstanceFields{
+				{
+					State: "running",
+				},
+			},
+			Routes: []plugin_models.GetApp_RouteSummary{
+				{
+					Domain: plugin_models.GetApp_DomainFields{
+						Name: "domain.cf-app.com",
+					},
+				},
+			},
+		}
+		fakeParser := NewFakeParser()
+		fakeParser.SetError(errors.New("some parser error"))
+
+		a := agent.New(fakeApp, "some-token", agent.WithClient(fakeClient), agent.WithParser(fakeParser))
+		output, err := a.GetMetrics()
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(output).To(HaveLen(1))
+		Expect(output[0].Output).To(Equal("some response body"))
+	})
 })
+
+type FakeParser struct {
+	mu              sync.Mutex
+	parseCalledWith []byte
+	err             error
+}
+
+func NewFakeParser() *FakeParser {
+	return &FakeParser{
+		// making this size big because `copy` copies the min of len(dst) and len(src)
+		parseCalledWith: make([]byte, 1024),
+	}
+}
+
+func (p *FakeParser) SetError(e error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	p.err = e
+}
+
+func (p *FakeParser) Parse(b []byte) ([]byte, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	p.parseCalledWith = b
+	return []byte(fmt.Sprintf("parsed %s", b)), p.err
+}
+
+func (p *FakeParser) ParseCalledWith() []byte {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	return p.parseCalledWith
+}
 
 type FakeClient struct {
 	mu       sync.Mutex

@@ -9,6 +9,7 @@ import (
 	"code.cloudfoundry.org/cli/cf/trace"
 	"code.cloudfoundry.org/cli/plugin"
 	"github.com/wfernandes/apps-metrics-plugin/pkg/agent"
+	"github.com/wfernandes/apps-metrics-plugin/pkg/parser"
 )
 
 type AppsMetricsPlugin struct {
@@ -55,9 +56,16 @@ func (c *AppsMetricsPlugin) getMetrics(cliConnection plugin.CliConnection, args 
 
 	var client *agent.Agent
 	if fc.IsSet("endpoint") {
-		client = agent.New(&app, token, agent.WithMetricsPath(fc.String("endpoint")))
+		client = agent.New(
+			&app,
+			token,
+			agent.WithParser(parser.NewExpvar([]string{"cmdline", "memstats"})),
+			agent.WithMetricsPath(fc.String("endpoint")))
 	} else {
-		client = agent.New(&app, token)
+		client = agent.New(
+			&app,
+			token,
+			agent.WithParser(parser.NewExpvar([]string{"cmdline", "memstats"})))
 	}
 
 	metrics, err := client.GetMetrics()
