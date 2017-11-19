@@ -28,7 +28,6 @@ type Parser interface {
 type Agent struct {
 	app    *plugin_models.GetAppModel
 	path   string
-	token  string
 	client HTTPClient
 	parser Parser
 }
@@ -53,11 +52,10 @@ func WithMetricsPath(p string) AgentOpt {
 	}
 }
 
-func New(model *plugin_models.GetAppModel, token string, opts ...AgentOpt) *Agent {
+func New(model *plugin_models.GetAppModel, opts ...AgentOpt) *Agent {
 	a := &Agent{
 		app:    model,
 		path:   "/debug/metrics",
-		token:  token,
 		client: &http.Client{Timeout: 10 * time.Second},
 		parser: parser.NewNoOp(),
 	}
@@ -89,7 +87,6 @@ func (a *Agent) GetMetrics() ([]MetricOuput, error) {
 			continue
 		}
 		request.Header.Add("X-CF-APP-INSTANCE", fmt.Sprintf("%s:%d", a.app.Guid, i))
-		request.Header.Add("Authorization", a.token)
 		outputs = append(outputs, a.doRequest(request, i))
 
 	}

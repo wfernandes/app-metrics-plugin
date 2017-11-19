@@ -44,12 +44,6 @@ func (c *AppsMetricsPlugin) getMetrics(cliConnection plugin.CliConnection, args 
 		return
 	}
 
-	token, err := cliConnection.AccessToken()
-	if err != nil {
-		c.ui.Failed(err.Error())
-		return
-	}
-
 	// Parse any flags that were provided
 	fc, err := parseArguments(args)
 	if err != nil {
@@ -65,13 +59,11 @@ func (c *AppsMetricsPlugin) getMetrics(cliConnection plugin.CliConnection, args 
 	if fc.IsSet("endpoint") {
 		client = agent.New(
 			&app,
-			token,
 			agent.WithParser(parser.NewExpvar([]string{"cmdline", "memstats"})),
 			agent.WithMetricsPath(fc.String("endpoint")))
 	} else {
 		client = agent.New(
 			&app,
-			token,
 			agent.WithParser(parser.NewExpvar([]string{"cmdline", "memstats"})))
 	}
 

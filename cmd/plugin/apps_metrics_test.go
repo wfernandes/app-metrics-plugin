@@ -1,7 +1,6 @@
 package main_test
 
 import (
-	"errors"
 	"fmt"
 
 	"code.cloudfoundry.org/cli/plugin/models"
@@ -35,18 +34,6 @@ var _ = Describe("AppsMetrics", func() {
 		})
 
 		Expect(output).To(ContainElement("iDoNotExist does not exist"))
-	})
-
-	It("prints error for failure to get access token", func() {
-		fakeCliConnection := &pluginfakes.FakeCliConnection{}
-		fakeCliConnection.AccessTokenReturns("", errors.New("unable to retrieve token"))
-		plugin := &AppsMetricsPlugin{}
-
-		output := CaptureOutput(func() {
-			plugin.Run(fakeCliConnection, []string{"apps-metrics", "some-app"})
-		})
-
-		Expect(output).To(ContainElement("unable to retrieve token"))
 	})
 
 	It("prints error when unable to get metrics", func() {
