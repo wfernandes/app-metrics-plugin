@@ -112,7 +112,7 @@ func (c *AppsMetricsPlugin) GetMetadata() plugin.PluginMetadata {
 				UsageDetails: plugin.Usage{
 					Usage: "cf apps-metrics APP_NAME",
 					Options: map[string]string{
-						"endpoint": "metrics endpoint",
+						"endpoint": "path of the metrics endpoint",
 					},
 				},
 			},
