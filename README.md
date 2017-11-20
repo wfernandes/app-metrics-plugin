@@ -64,6 +64,29 @@ cf uninstall-plugin AppsMetricsPlugin
 ./scripts/test.sh
 ```
 
+## Sample Output
+```bash
+# Yes, I know. Templating needs some more work.
+$ cf apps-metrics event-alerts
+
+        Instance: 0
+        Metrics:
+          ingress.matched: 0
+          ingress.received: 944066
+          notifier.dropped: 0
+          notifier.emails.failed: 0
+          notifier.emails.sent: 0
+
+        Instance: 1
+        Metrics:
+          ingress.matched: 0
+          ingress.received: 301891
+          notifier.dropped: 0
+          notifier.emails.failed: 0
+          notifier.emails.sent: 0
+
+```
+
 ## Future Work
 
 See the issues section for thoughts on what needs to be added later.
