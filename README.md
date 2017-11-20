@@ -1,3 +1,4 @@
+![CI Badge][ci-badge]
 # Apps Metrics Plugin
 
 This is a CF CLI plugin. See [here][cf-cli] for more details.
@@ -91,7 +92,7 @@ $ cf apps-metrics event-alerts
 
 See the issues section for thoughts on what needs to be added later.
 
-
+[ci-badge]:     https://travis-ci.org/wfernandes/apps-metrics-plugin.svg?branch=master
 [cf-cli]:       https://docs.cloudfoundry.org/cf-cli/develop-cli-plugins.html
 [dropwizard]:   http://metrics.dropwizard.io/3.2.3/
 [prometheus]:   https://prometheus.io/docs/practices/instrumentation/
