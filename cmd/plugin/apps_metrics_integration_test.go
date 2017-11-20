@@ -9,7 +9,7 @@ import (
 	"code.cloudfoundry.org/cli/plugin/models"
 	"code.cloudfoundry.org/cli/plugin/pluginfakes"
 
-	. "github.com/cloudfoundry/cli/util/testhelpers/io"
+	. "code.cloudfoundry.org/cli/util/testhelpers/io"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/wfernandes/apps-metrics-plugin/cmd/plugin"
