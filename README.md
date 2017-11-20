@@ -18,10 +18,10 @@ makes your metrics available via a HTTP endpoint
 
 ### Problem this plugin alleviates
 
-So if you have an app deployed on Cloudfoundry at `myapp.domain.cf-app.com` you can `GET` its metrics endpoint hitting
+So if you have an app deployed on Cloudfoundry at `myapp.domain.cf-app.com` you can `GET` its metrics by hitting
 `http://myapp.domain.cf-app.com/metrics`.
 
-However, if you scale the app to greater than one instance, Cloudfoundry's router will load balance your requests across
+However, if you scale up the application to greater than one instance, Cloudfoundry's router will load balance your requests across
 your app instances. This means that you will be getting metrics from a random instance every time.
 
 
