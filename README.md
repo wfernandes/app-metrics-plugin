@@ -8,11 +8,24 @@ modern day developers. I shouldn't have to explain this further.
 
 
 The purpose of this plugin is to be able hit the metrics endpoint across all your application instances.
-There are many ways to instrument your applications including [Dropwizard][dropwizard] and [Prometheus][prometheus].
+There are many ways to instrument your applications including [Dropwizard][dropwizard], [Prometheus][prometheus] and
+[go-metrics][godropwizard].
 
 
 For golang applications, there is a package called [Expvar][expvar] available as part of the standard library which
 makes your metrics available via a HTTP endpoint
+
+### Problem this plugin alleviates
+
+So if you have an app deployed on Cloudfoundry at `myapp.domain.cf-app.com` you can `GET` its metrics endpoint hitting
+`http://myapp.domain.cf-app.com/metrics`.
+
+However, if you scale the app to greater than one instance, Cloudfoundry's router will load balance your requests across
+your app instances. This means that you will be getting metrics from a random instance every time.
+
+
+This plugin will hit your metrics endpoint (defaults to `/debug/metrics`) across all your app instances and display the
+output in a human readable fashion.
 
 ### Expvar
 
@@ -60,3 +73,4 @@ See the issues section for thoughts on what needs to be added later.
 [dropwizard]:   http://metrics.dropwizard.io/3.2.3/
 [prometheus]:   https://prometheus.io/docs/practices/instrumentation/
 [expvar]:       https://golang.org/pkg/expvar/
+[godropwizard]: https://github.com/rcrowley/go-metrics
