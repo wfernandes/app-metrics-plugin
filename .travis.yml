@@ -1,0 +1,14 @@
+language: go
+
+go:
+  - 1.9
+
+install:
+  - go get code.cloudfoundry.org/cli/cf
+  - (cd $GOPATH/src/code.cloudfoundry.org/cli && ./bin/generate-language-resources)
+  - go get ./...
+  - go get github.com/onsi/ginkgo/ginkgo
+  - go get github.com/onsi/gomega
+  - go get golang.org/x/tools/cmd/cover
+
+script: ./scripts/test.sh
