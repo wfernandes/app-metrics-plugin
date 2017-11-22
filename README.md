@@ -67,24 +67,28 @@ cf uninstall-plugin AppsMetricsPlugin
 
 ## Sample Output
 ```bash
-# Yes, I know. Templating needs some more work.
 $ cf apps-metrics event-alerts
 
-        Instance: 0
-        Metrics:
-          ingress.matched: 0
-          ingress.received: 944066
-          notifier.dropped: 0
-          notifier.emails.failed: 0
-          notifier.emails.sent: 0
+Instance: 0
+Metrics:
+  eva.notificationsStatus: 1
+  eva.smoketest: 5
+  ingress.matched: 0
+  ingress.received: 1131578
+  notifier.dropped: 0
+  notifier.emails.failed: 0
+  notifier.emails.sent: 0
 
-        Instance: 1
-        Metrics:
-          ingress.matched: 0
-          ingress.received: 301891
-          notifier.dropped: 0
-          notifier.emails.failed: 0
-          notifier.emails.sent: 0
+Instance: 1
+Metrics:
+  eva.notificationsStatus: 1
+  eva.smoketest: 0
+  ingress.matched: 0
+  ingress.received: 24521
+  notifier.dropped: 0
+  notifier.emails.failed: 0
+  notifier.emails.sent: 0
+
 
 ```
 
