@@ -20,6 +20,7 @@ var _ = Describe("Agent", func() {
 
 	It("returns error upon unsuccessful request", func() {
 		fakeApp := &plugin_models.GetAppModel{
+			RunningInstances: 1,
 			Instances: []plugin_models.GetApp_AppInstanceFields{
 				{
 					State: "running",
@@ -42,6 +43,7 @@ var _ = Describe("Agent", func() {
 
 	It("returns error if app has no routes", func() {
 		fakeApp := &plugin_models.GetAppModel{
+			RunningInstances: 1,
 			Instances: []plugin_models.GetApp_AppInstanceFields{
 				{
 					State: "running",
@@ -56,6 +58,7 @@ var _ = Describe("Agent", func() {
 
 	It("makes request using domain name only if there is no host", func() {
 		fakeApp := &plugin_models.GetAppModel{
+			RunningInstances: 1,
 			Instances: []plugin_models.GetApp_AppInstanceFields{
 				{
 					State: "running",
@@ -78,6 +81,7 @@ var _ = Describe("Agent", func() {
 
 	It("makes request using host and domain name", func() {
 		fakeApp := &plugin_models.GetAppModel{
+			RunningInstances: 1,
 			Instances: []plugin_models.GetApp_AppInstanceFields{
 				{
 					State: "running",
@@ -104,6 +108,7 @@ var _ = Describe("Agent", func() {
 		fakeClient.SetResponse("some response body")
 
 		fakeApp := &plugin_models.GetAppModel{
+			RunningInstances: 1,
 			Instances: []plugin_models.GetApp_AppInstanceFields{
 				{
 					State: "running",
@@ -130,11 +135,40 @@ var _ = Describe("Agent", func() {
 		Expect(request.Header.Get("X-CF-APP-INSTANCE")).ToNot(BeEmpty())
 	})
 
+	XIt("cancel slow requests", func() {
+		fakeClient := NewFakeClient()
+		fakeApp := &plugin_models.GetAppModel{
+			Instances: []plugin_models.GetApp_AppInstanceFields{
+				{
+					State: "running",
+				},
+				{
+					State: "running",
+				},
+				{
+					State: "running",
+				},
+			},
+			Routes: []plugin_models.GetApp_RouteSummary{
+				{
+					Domain: plugin_models.GetApp_DomainFields{
+						Name: "domain.cf-app.com",
+					},
+				},
+			},
+		}
+		a := agent.New(fakeApp, agent.WithClient(fakeClient))
+		_, err := a.GetMetrics()
+
+		Expect(err).ToNot(HaveOccurred())
+	})
+
 	It("returns output error upon failing request", func() {
 		fakeClient := NewFakeClient()
 		fakeClient.SetError(errors.New("some request error"))
 
 		fakeApp := &plugin_models.GetAppModel{
+			RunningInstances: 1,
 			Instances: []plugin_models.GetApp_AppInstanceFields{
 				{
 					State: "running",
@@ -163,6 +197,7 @@ var _ = Describe("Agent", func() {
 		fakeClient := NewFakeClient()
 		fakeClient.SetBadResponse()
 		fakeApp := &plugin_models.GetAppModel{
+			RunningInstances: 1,
 			Instances: []plugin_models.GetApp_AppInstanceFields{
 				{
 					State: "running",
@@ -190,7 +225,8 @@ var _ = Describe("Agent", func() {
 	It("sends GET request with X-CF-APP-INSTANCE header for app with multiple instances", func() {
 		fakeClient := NewFakeClient()
 		fakeApp := &plugin_models.GetAppModel{
-			Guid: "some-app-guid",
+			Guid:             "some-app-guid",
+			RunningInstances: 2,
 			Instances: []plugin_models.GetApp_AppInstanceFields{
 				{
 					State: "running",
@@ -228,6 +264,7 @@ var _ = Describe("Agent", func() {
 		fakeClient.SetResponse("some response body")
 
 		fakeApp := &plugin_models.GetAppModel{
+			RunningInstances: 1,
 			Instances: []plugin_models.GetApp_AppInstanceFields{
 				{
 					State: "running",
@@ -257,6 +294,7 @@ var _ = Describe("Agent", func() {
 		fakeClient.SetResponse("some response body")
 
 		fakeApp := &plugin_models.GetAppModel{
+			RunningInstances: 1,
 			Instances: []plugin_models.GetApp_AppInstanceFields{
 				{
 					State: "running",
@@ -318,26 +356,37 @@ func (p *FakeParser) ParseCalledWith() []byte {
 }
 
 type FakeClient struct {
-	mu       sync.Mutex
-	requests []*http.Request
-	body     io.ReadCloser
-	err      error
+	mu          sync.Mutex
+	requests    []*http.Request
+	body        string
+	err         error
+	responseErr bool
 }
 
 func NewFakeClient() *FakeClient {
 	return &FakeClient{
 		requests: make([]*http.Request, 0),
-		body:     ioutil.NopCloser(bytes.NewBufferString("some default response")),
+		body:     "some default response",
 	}
 }
 
 func (f *FakeClient) Do(r *http.Request) (*http.Response, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+
 	f.requests = append(f.requests, r)
-	return &http.Response{
-		Body: f.body,
-	}, f.err
+	var resp *http.Response
+	if f.responseErr {
+		resp = &http.Response{
+			Body: ioutil.NopCloser(&FakeReader{}),
+		}
+	} else {
+		resp = &http.Response{
+			Body: ioutil.NopCloser(bytes.NewBufferString(f.body)),
+		}
+	}
+
+	return resp, f.err
 }
 
 func (f *FakeClient) Requests() []*http.Request {
@@ -365,14 +414,14 @@ func (f *FakeClient) SetResponse(body string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
-	f.body = ioutil.NopCloser(bytes.NewBufferString(body))
+	f.body = body
 }
 
 func (f *FakeClient) SetBadResponse() {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
-	f.body = ioutil.NopCloser(&FakeReader{})
+	f.responseErr = true
 
 }
 

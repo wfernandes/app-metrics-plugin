@@ -72,28 +72,39 @@ func (a *Agent) GetMetrics() ([]MetricOuput, error) {
 	if err != nil {
 		return nil, err
 	}
-	outputs := make([]MetricOuput, 0, a.app.InstanceCount)
+	outputs := make([]MetricOuput, 0, a.app.RunningInstances)
+	results := make(chan MetricOuput, a.app.RunningInstances)
+	defer close(results)
 
 	for i, instance := range a.app.Instances {
 		if instance.State != "running" {
 			continue
 		}
-		request, err := http.NewRequest(http.MethodGet, url, nil)
-		if err != nil {
-			outputs = append(outputs, MetricOuput{
-				Instance: i,
-				Error:    err.Error(),
-			})
-			continue
-		}
-		request.Header.Add("X-CF-APP-INSTANCE", fmt.Sprintf("%s:%d", a.app.Guid, i))
-		outputs = append(outputs, a.doRequest(request, i))
-
+		go func(idx int) {
+			mo := a.makeRequest(url, idx)
+			results <- mo
+		}(i)
 	}
+
+	for r := range results {
+		outputs = append(outputs, r)
+		if len(outputs) == a.app.RunningInstances {
+			return outputs, nil
+		}
+	}
+
 	return outputs, nil
 }
 
-func (a *Agent) doRequest(request *http.Request, i int) MetricOuput {
+func (a *Agent) makeRequest(url string, i int) MetricOuput {
+	request, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return MetricOuput{
+			Instance: i,
+			Error:    err.Error(),
+		}
+	}
+	request.Header.Add("X-CF-APP-INSTANCE", fmt.Sprintf("%s:%d", a.app.Guid, i))
 
 	resp, err := a.client.Do(request)
 	if err != nil {
@@ -115,6 +126,7 @@ func (a *Agent) doRequest(request *http.Request, i int) MetricOuput {
 	if err != nil {
 		parsed = bytes
 	}
+
 	return MetricOuput{
 		Instance: i,
 		Output:   string(parsed),

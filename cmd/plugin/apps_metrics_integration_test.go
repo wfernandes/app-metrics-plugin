@@ -58,16 +58,17 @@ var _ = Describe("AppsMetrics Integration", func() {
 			appsMetricsPlugin.Run(fakeCliConnection, []string{"apps-metrics", "some-app", "-endpoint", endpoint})
 		})
 
-		Expect(output).To(ContainElement("\tInstance: 0"))
-		Expect(output).To(ContainElement("\tMetrics:"))
-		Expect(output).To(ContainElement("\t  ingress.received: 12345"))
-		Expect(output).To(ContainElement("\t  ingress.sent: 12345"))
+		Expect(output).To(ContainElement("Instance: 0"))
+		Expect(output).To(ContainElement("Metrics:"))
+		Expect(output).To(ContainElement("  ingress.received: 12345"))
+		Expect(output).To(ContainElement("  ingress.sent: 12345"))
 	})
 })
 
 func buildAppModel(host string) plugin_models.GetAppModel {
 	return plugin_models.GetAppModel{
-		Guid: "some-app-guid",
+		Guid:             "some-app-guid",
+		RunningInstances: 1,
 		Instances: []plugin_models.GetApp_AppInstanceFields{
 			{
 				State: "running",
