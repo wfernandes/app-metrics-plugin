@@ -54,18 +54,20 @@ func (v *View) Present(m []agent.MetricOuput) error {
 func buildDefaultTemplate() *template.Template {
 	t := template.New("default")
 	t = t.Funcs(template.FuncMap{"metricsParse": ParseMetrics})
+	// TODO: Ignoring this error for now
 	t, _ = t.Parse(`
 {{- range .}}
-	Instance: {{.Instance}}
-	{{ if .Output -}}
-	Metrics:
-	  {{- range $k, $v := metricsParse .Output}}
-	  {{print $k}}: {{printf "%s" $v -}}
-	  {{end -}}
-	{{else -}}
-	Error: {{.Error}}
-	{{end }}
+Instance: {{.Instance}}
+{{ if .Output -}}
+Metrics:
+  {{- range $k, $v := metricsParse .Output}}
+  {{print $k}}: {{printf "%s" $v -}}
+  {{end -}}
+{{else -}}
+Error: {{.Error}}
+{{end }}
 {{end}}`)
+
 	return t
 }
 
