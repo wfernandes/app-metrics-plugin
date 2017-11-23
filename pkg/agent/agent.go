@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -67,41 +68,49 @@ func New(model *plugin_models.GetAppModel, opts ...AgentOpt) *Agent {
 	return a
 }
 
-func (a *Agent) GetMetrics() ([]MetricOuput, error) {
+func (a *Agent) GetMetrics(ctx context.Context) ([]MetricOuput, error) {
 	url, err := a.buildURL()
 	if err != nil {
 		return nil, err
 	}
 	outputs := make([]MetricOuput, 0, a.app.RunningInstances)
+	// TODO we need to fan-in results
 	results := make(chan MetricOuput, a.app.RunningInstances)
-	defer close(results)
 
 	for i, instance := range a.app.Instances {
 		if instance.State != "running" {
 			continue
 		}
+		// Need a better way to clean up this go routine
 		go func(idx int) {
-			mo := a.makeRequest(url, idx)
+			// TODO makeRequest should return a channel so once its done, it can be responsible for closing it.
+			mo := a.makeRequest(url, idx, ctx)
 			results <- mo
 		}(i)
 	}
 
-	for r := range results {
-		outputs = append(outputs, r)
-		if len(outputs) == a.app.RunningInstances {
-			return outputs, nil
+	for {
+		select {
+		case r := <-results:
+			outputs = append(outputs, r)
+			if len(outputs) == a.app.RunningInstances {
+				return outputs, nil
+			}
+		case <-ctx.Done():
+			return outputs, ctx.Err()
 		}
 	}
 
 	return outputs, nil
 }
 
-func (a *Agent) makeRequest(url string, i int) MetricOuput {
+func (a *Agent) makeRequest(url string, i int, ctx context.Context) MetricOuput {
 	request, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return buildMetricOutput(i, "", err)
 	}
 	request.Header.Add("X-CF-APP-INSTANCE", fmt.Sprintf("%s:%d", a.app.Guid, i))
+	request = request.WithContext(ctx)
 
 	resp, err := a.client.Do(request)
 	if err != nil {

@@ -2,6 +2,7 @@ package agent_test
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -35,7 +36,7 @@ var _ = Describe("Agent", func() {
 			},
 		}
 		a := agent.New(fakeApp)
-		output, err := a.GetMetrics()
+		output, err := a.GetMetrics(context.Background())
 		Expect(err).ToNot(HaveOccurred())
 		Expect(output).To(HaveLen(1))
 		Expect(output[0].Error).ToNot(BeEmpty())
@@ -52,7 +53,7 @@ var _ = Describe("Agent", func() {
 			Routes: []plugin_models.GetApp_RouteSummary{},
 		}
 		a := agent.New(fakeApp)
-		_, err := a.GetMetrics()
+		_, err := a.GetMetrics(context.Background())
 		Expect(err).To(HaveOccurred())
 	})
 
@@ -74,7 +75,7 @@ var _ = Describe("Agent", func() {
 		}
 		fakeClient := NewFakeClient()
 		a := agent.New(fakeApp, agent.WithClient(fakeClient))
-		_, err := a.GetMetrics()
+		_, err := a.GetMetrics(context.Background())
 		Expect(err).ToNot(HaveOccurred())
 		Expect(fakeClient.LastRequest().URL.String()).To(Equal("http://domain.cf-app.com/debug/metrics"))
 	})
@@ -98,7 +99,7 @@ var _ = Describe("Agent", func() {
 		}
 		fakeClient := NewFakeClient()
 		a := agent.New(fakeApp, agent.WithClient(fakeClient))
-		_, err := a.GetMetrics()
+		_, err := a.GetMetrics(context.Background())
 		Expect(err).ToNot(HaveOccurred())
 		Expect(fakeClient.LastRequest().URL.String()).To(Equal("http://my-app-host.domain.cf-app.com/debug/metrics"))
 	})
@@ -124,7 +125,7 @@ var _ = Describe("Agent", func() {
 		}
 
 		a := agent.New(fakeApp, agent.WithClient(fakeClient))
-		output, err := a.GetMetrics()
+		output, err := a.GetMetrics(context.Background())
 
 		request := fakeClient.LastRequest()
 		Expect(err).ToNot(HaveOccurred())
@@ -156,7 +157,7 @@ var _ = Describe("Agent", func() {
 		}
 
 		a := agent.New(fakeApp, agent.WithClient(fakeClient))
-		output, err := a.GetMetrics()
+		output, err := a.GetMetrics(context.Background())
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(output).To(HaveLen(1))
@@ -185,7 +186,7 @@ var _ = Describe("Agent", func() {
 		}
 
 		a := agent.New(fakeApp, agent.WithClient(fakeClient))
-		output, err := a.GetMetrics()
+		output, err := a.GetMetrics(context.Background())
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(output).To(HaveLen(1))
@@ -220,7 +221,7 @@ var _ = Describe("Agent", func() {
 		}
 		a := agent.New(fakeApp, agent.WithClient(fakeClient))
 
-		_, err := a.GetMetrics()
+		_, err := a.GetMetrics(context.Background())
 
 		Expect(err).ToNot(HaveOccurred())
 		Eventually(fakeClient.Requests).Should(HaveLen(2))
@@ -253,7 +254,7 @@ var _ = Describe("Agent", func() {
 		fakeParser := NewFakeParser()
 
 		a := agent.New(fakeApp, agent.WithClient(fakeClient), agent.WithParser(fakeParser))
-		output, err := a.GetMetrics()
+		output, err := a.GetMetrics(context.Background())
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(string(fakeParser.ParseCalledWith())).To(BeEquivalentTo("some response body"))
@@ -284,7 +285,7 @@ var _ = Describe("Agent", func() {
 		fakeParser.SetError(errors.New("some parser error"))
 
 		a := agent.New(fakeApp, agent.WithClient(fakeClient), agent.WithParser(fakeParser))
-		output, err := a.GetMetrics()
+		output, err := a.GetMetrics(context.Background())
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(output).To(HaveLen(1))

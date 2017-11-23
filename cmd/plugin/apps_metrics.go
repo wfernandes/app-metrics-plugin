@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"code.cloudfoundry.org/cli/cf/flags"
 	"code.cloudfoundry.org/cli/cf/terminal"
@@ -37,6 +40,10 @@ func (c *AppsMetricsPlugin) Run(cliConnection plugin.CliConnection, args []strin
 }
 
 func (c *AppsMetricsPlugin) getMetrics(cliConnection plugin.CliConnection, args []string) {
+	// Catch SIGTERM & SIGKILL
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
 	// Verify we have access to the app
 	app, err := cliConnection.GetApp(args[1])
 	if err != nil {
@@ -68,7 +75,13 @@ func (c *AppsMetricsPlugin) getMetrics(cliConnection plugin.CliConnection, args 
 	}
 
 	// Make the request(s) and get the data
-	metrics, err := client.GetMetrics()
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		sig := <-sigs
+		c.ui.Warn("Received an interrupt signal: %s", sig)
+		cancel()
+	}()
+	metrics, err := client.GetMetrics(ctx)
 	if err != nil {
 		c.ui.Failed("unable to get metrics: %s\n", err)
 	}
