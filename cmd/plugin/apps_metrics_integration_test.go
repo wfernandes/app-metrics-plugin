@@ -28,7 +28,7 @@ var _ = Describe("AppsMetrics Integration", func() {
 		})
 
 		// trimming the scheme because we'll build the url back from app model
-		model := buildAppModel(strings.TrimPrefix(ts.URL, "http://"))
+		model := buildAppModel(strings.TrimPrefix(ts.URL, "http://"), 1)
 		fakeCliConnection.GetAppReturns(model, nil)
 
 		appsMetricsPlugin := &AppsMetricsPlugin{}
@@ -50,7 +50,7 @@ var _ = Describe("AppsMetrics Integration", func() {
 		})
 
 		// trimming the scheme because we'll build the url back from app model
-		model := buildAppModel(strings.TrimPrefix(ts.URL, "http://"))
+		model := buildAppModel(strings.TrimPrefix(ts.URL, "http://"), 1)
 		fakeCliConnection.GetAppReturns(model, nil)
 
 		appsMetricsPlugin := &AppsMetricsPlugin{}
@@ -65,15 +65,11 @@ var _ = Describe("AppsMetrics Integration", func() {
 	})
 })
 
-func buildAppModel(host string) plugin_models.GetAppModel {
-	return plugin_models.GetAppModel{
+func buildAppModel(host string, runningInstances int) plugin_models.GetAppModel {
+	m := plugin_models.GetAppModel{
 		Guid:             "some-app-guid",
-		RunningInstances: 1,
-		Instances: []plugin_models.GetApp_AppInstanceFields{
-			{
-				State: "running",
-			},
-		},
+		RunningInstances: runningInstances,
+		Instances:        []plugin_models.GetApp_AppInstanceFields{},
 		Routes: []plugin_models.GetApp_RouteSummary{
 			{
 				Domain: plugin_models.GetApp_DomainFields{
@@ -82,4 +78,9 @@ func buildAppModel(host string) plugin_models.GetAppModel {
 			},
 		},
 	}
+
+	for i := 0; i < runningInstances; i++ {
+		m.Instances = append(m.Instances, plugin_models.GetApp_AppInstanceFields{State: "running"})
+	}
+	return m
 }

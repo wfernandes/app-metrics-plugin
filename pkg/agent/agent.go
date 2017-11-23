@@ -56,7 +56,7 @@ func New(model *plugin_models.GetAppModel, opts ...AgentOpt) *Agent {
 	a := &Agent{
 		app:    model,
 		path:   "/debug/metrics",
-		client: &http.Client{Timeout: 10 * time.Second},
+		client: &http.Client{Timeout: 5 * time.Second},
 		parser: parser.NewNoOp(),
 	}
 
@@ -99,27 +99,18 @@ func (a *Agent) GetMetrics() ([]MetricOuput, error) {
 func (a *Agent) makeRequest(url string, i int) MetricOuput {
 	request, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		return MetricOuput{
-			Instance: i,
-			Error:    err.Error(),
-		}
+		return buildMetricOutput(i, "", err)
 	}
 	request.Header.Add("X-CF-APP-INSTANCE", fmt.Sprintf("%s:%d", a.app.Guid, i))
 
 	resp, err := a.client.Do(request)
 	if err != nil {
-		return MetricOuput{
-			Instance: i,
-			Error:    err.Error(),
-		}
+		return buildMetricOutput(i, "", err)
 	}
 	defer resp.Body.Close()
 	bytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return MetricOuput{
-			Instance: i,
-			Error:    err.Error(),
-		}
+		return buildMetricOutput(i, "", err)
 	}
 
 	parsed, err := a.parser.Parse(bytes)
@@ -127,10 +118,7 @@ func (a *Agent) makeRequest(url string, i int) MetricOuput {
 		parsed = bytes
 	}
 
-	return MetricOuput{
-		Instance: i,
-		Output:   string(parsed),
-	}
+	return buildMetricOutput(i, string(parsed), nil)
 }
 
 func (a *Agent) buildURL() (string, error) {
@@ -146,4 +134,15 @@ func (a *Agent) buildURL() (string, error) {
 		url = "http://" + route.Host + "." + route.Domain.Name + a.path
 	}
 	return url, nil
+}
+
+func buildMetricOutput(instance int, output string, err error) MetricOuput {
+	mo := MetricOuput{
+		Instance: instance,
+		Output:   output,
+	}
+	if err != nil {
+		mo.Error = err.Error()
+	}
+	return mo
 }

@@ -135,34 +135,6 @@ var _ = Describe("Agent", func() {
 		Expect(request.Header.Get("X-CF-APP-INSTANCE")).ToNot(BeEmpty())
 	})
 
-	XIt("cancel slow requests", func() {
-		fakeClient := NewFakeClient()
-		fakeApp := &plugin_models.GetAppModel{
-			Instances: []plugin_models.GetApp_AppInstanceFields{
-				{
-					State: "running",
-				},
-				{
-					State: "running",
-				},
-				{
-					State: "running",
-				},
-			},
-			Routes: []plugin_models.GetApp_RouteSummary{
-				{
-					Domain: plugin_models.GetApp_DomainFields{
-						Name: "domain.cf-app.com",
-					},
-				},
-			},
-		}
-		a := agent.New(fakeApp, agent.WithClient(fakeClient))
-		_, err := a.GetMetrics()
-
-		Expect(err).ToNot(HaveOccurred())
-	})
-
 	It("returns output error upon failing request", func() {
 		fakeClient := NewFakeClient()
 		fakeClient.SetError(errors.New("some request error"))
@@ -356,11 +328,11 @@ func (p *FakeParser) ParseCalledWith() []byte {
 }
 
 type FakeClient struct {
-	mu          sync.Mutex
-	requests    []*http.Request
-	body        string
-	err         error
-	responseErr bool
+	mu         sync.Mutex
+	requests   []*http.Request
+	body       string
+	err        error
+	readerFail bool
 }
 
 func NewFakeClient() *FakeClient {
@@ -376,7 +348,7 @@ func (f *FakeClient) Do(r *http.Request) (*http.Response, error) {
 
 	f.requests = append(f.requests, r)
 	var resp *http.Response
-	if f.responseErr {
+	if f.readerFail {
 		resp = &http.Response{
 			Body: ioutil.NopCloser(&FakeReader{}),
 		}
@@ -421,7 +393,7 @@ func (f *FakeClient) SetBadResponse() {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
-	f.responseErr = true
+	f.readerFail = true
 
 }
 
