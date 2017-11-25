@@ -19,7 +19,7 @@ import (
 
 var _ = Describe("AppsMetrics Integration", func() {
 
-	It("returns fallback output style when presentation fails", func() {
+	It("returns json output style when presentation fails", func() {
 		endpoint := "/myspecific/metrics/endpoint"
 		fakeCliConnection := &pluginfakes.FakeCliConnection{}
 		mux := http.NewServeMux()
@@ -39,6 +39,27 @@ var _ = Describe("AppsMetrics Integration", func() {
 		})
 
 		Expect(output).To(ContainElement("[{\"Instance\":0,\"Output\":\"this is my metrics output\",\"Error\":\"\"}]"))
+	})
+
+	It("returns json output style when raw flag is specified", func() {
+		fakeCliConnection := &pluginfakes.FakeCliConnection{}
+		mux := http.NewServeMux()
+		ts := httptest.NewServer(mux)
+		defer ts.Close()
+		mux.HandleFunc("/debug/metrics", func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintf(w, `{"ingress.received": 12345,"ingress.sent": 12345}`)
+		})
+
+		// trimming the scheme because we'll build the url back from app model
+		model := buildAppModel(strings.TrimPrefix(ts.URL, "http://"), 1)
+		fakeCliConnection.GetAppReturns(model, nil)
+
+		appsMetricsPlugin := &AppsMetricsPlugin{}
+		output := CaptureOutput(func() {
+			appsMetricsPlugin.Run(fakeCliConnection, []string{"app-metrics", "some-app", "-raw"})
+		})
+
+		Expect(output).To(ContainElement("[{\"Instance\":0,\"Output\":\"{\\\"ingress.received\\\":12345,\\\"ingress.sent\\\":12345}\",\"Error\":\"\"}]"))
 	})
 
 	It("returns default template output style", func() {

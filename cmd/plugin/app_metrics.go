@@ -105,6 +105,12 @@ func (c *AppsMetricsPlugin) getMetrics(cliConnection plugin.CliConnection, args 
 		c.ui.Failed("unable to get metrics: %s\n", err)
 	}
 
+	// Print json output when raw flag is specified
+	if fc.IsSet("raw") {
+		c.printDefault(metrics)
+		return
+	}
+
 	// Present the data
 	var view *views.View
 	if fc.IsSet("template") {
@@ -137,6 +143,7 @@ func parseArguments(args []string) (flags.FlagContext, error) {
 	fc := flags.New()
 	fc.NewStringFlag("endpoint", "e", "Path of the metrics endpoint")
 	fc.NewStringFlag("template", "t", "Path of the template files to render metrics")
+	fc.NewBoolFlag("raw", "r", "Prints raw json output")
 
 	err := fc.Parse(args...)
 	if err != nil {
