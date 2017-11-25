@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"text/template"
 
 	"code.cloudfoundry.org/cli/cf/flags"
 	"code.cloudfoundry.org/cli/cf/terminal"
@@ -75,8 +76,18 @@ func (c *AppsMetricsPlugin) getMetrics(cliConnection plugin.CliConnection, args 
 	}
 
 	// Present the data
-	defaultView := views.New()
-	err = defaultView.Present(metrics)
+	var view *views.View
+	if fc.IsSet("template") {
+		tmpl, err := template.ParseFiles(fc.String("template"))
+		if err != nil {
+			c.ui.Failed("unable to parse template files: %s\n", err)
+			return
+		}
+		view = views.New(views.WithTemplate(tmpl))
+	} else {
+		view = views.New()
+	}
+	err = view.Present(metrics)
 	if err != nil {
 		c.ui.Warn(err.Error())
 		c.printDefault(metrics)
@@ -95,6 +106,7 @@ func (c *AppsMetricsPlugin) printDefault(metrics []agent.MetricOuput) {
 func parseArguments(args []string) (flags.FlagContext, error) {
 	fc := flags.New()
 	fc.NewStringFlag("endpoint", "e", "Path of the metrics endpoint")
+	fc.NewStringFlag("template", "t", "Path of the template files to render metrics")
 
 	err := fc.Parse(args...)
 	if err != nil {
@@ -125,6 +137,7 @@ func (c *AppsMetricsPlugin) GetMetadata() plugin.PluginMetadata {
 					Usage: "cf apps-metrics APP_NAME",
 					Options: map[string]string{
 						"endpoint": "path of the metrics endpoint",
+						"template": "path of the template files to render metrics",
 					},
 				},
 			},
