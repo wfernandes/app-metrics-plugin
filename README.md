@@ -74,23 +74,17 @@ $ cf app-metrics event-alerts
 
 Instance: 0
 Metrics:
-  eva.notificationsStatus: 1
-  eva.smoketest: 5
-  ingress.matched: 0
-  ingress.received: 1131578
-  notifier.dropped: 0
-  notifier.emails.failed: 0
-  notifier.emails.sent: 0
+  metric.float: 123.345
+  metric.int: 10
+  metric.map: {"metric1":10,"metric2":11}
+  metric.string: "expvarApp"
 
 Instance: 1
 Metrics:
-  eva.notificationsStatus: 1
-  eva.smoketest: 0
-  ingress.matched: 0
-  ingress.received: 24521
-  notifier.dropped: 0
-  notifier.emails.failed: 0
-  notifier.emails.sent: 0
+  metric.float: 123.345
+  metric.int: 10
+  metric.map: {"metric1":10,"metric2":11}
+  metric.string: "expvarApp"
 
 
 ```
