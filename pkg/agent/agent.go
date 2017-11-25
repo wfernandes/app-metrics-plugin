@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"sort"
 	"time"
 
 	"code.cloudfoundry.org/cli/plugin/models"
@@ -68,12 +69,17 @@ func New(model *plugin_models.GetAppModel, opts ...AgentOpt) *Agent {
 	return a
 }
 
-func (a *Agent) GetMetrics(ctx context.Context) ([]MetricOuput, error) {
+func (a *Agent) GetMetrics(ctx context.Context) (outputs []MetricOuput, err error) {
 	url, err := a.buildURL()
 	if err != nil {
 		return nil, err
 	}
-	outputs := make([]MetricOuput, 0, a.app.RunningInstances)
+	outputs = make([]MetricOuput, 0, a.app.RunningInstances)
+	defer func() {
+		// make sure the output is sorted
+		sort.Sort(byInstance(outputs))
+	}()
+
 	// TODO we need to fan-in results
 	results := make(chan MetricOuput, a.app.RunningInstances)
 
@@ -154,4 +160,16 @@ func buildMetricOutput(instance int, output string, err error) MetricOuput {
 		mo.Error = err.Error()
 	}
 	return mo
+}
+
+type byInstance []MetricOuput
+
+func (s byInstance) Len() int {
+	return len(s)
+}
+func (s byInstance) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+func (s byInstance) Less(i, j int) bool {
+	return s[i].Instance < s[j].Instance
 }

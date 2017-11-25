@@ -85,6 +85,27 @@ var _ = Describe("Agent", func() {
 		Expect(results).To(HaveLen(1))
 		Expect(results[0].Instance).To(Equal(0))
 	})
+
+	It("sorts the output by instance number", func() {
+		mux := http.NewServeMux()
+		ts := httptest.NewServer(mux)
+		defer ts.Close()
+		mux.HandleFunc("/debug/metrics", func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintf(w, `{"instance.name": %s}`, r.Header.Get("X-CF-APP-INSTANCE"))
+		})
+		// trimming the scheme because we'll build the url back from app model
+		model := buildAppModel(strings.TrimPrefix(ts.URL, "http://"), 3)
+
+		a := agent.New(&model)
+
+		output, err := a.GetMetrics(context.Background())
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(output).To(HaveLen(3))
+		Expect(output[0].Instance).To(Equal(0))
+		Expect(output[1].Instance).To(Equal(1))
+		Expect(output[2].Instance).To(Equal(2))
+	})
 })
 
 func buildAppModel(host string, runningInstances int) plugin_models.GetAppModel {
