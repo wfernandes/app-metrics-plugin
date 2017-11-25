@@ -19,6 +19,36 @@ type AppsMetricsPlugin struct {
 	ui terminal.UI
 }
 
+func (c *AppsMetricsPlugin) GetMetadata() plugin.PluginMetadata {
+	return plugin.PluginMetadata{
+		Name: "AppMetricsPlugin",
+		Version: plugin.VersionType{
+			Major: 1,
+			Minor: 0,
+			Build: 0,
+		},
+		MinCliVersion: plugin.VersionType{
+			Major: 6,
+			Minor: 7,
+			Build: 0,
+		},
+		Commands: []plugin.Command{
+			{
+				Name:     "app-metrics",
+				HelpText: "Hits the metrics endpoint across all your app instances",
+
+				UsageDetails: plugin.Usage{
+					Usage: "cf app-metrics APP_NAME",
+					Options: map[string]string{
+						"endpoint": "path of the metrics endpoint",
+						"template": "path of the template files to render metrics",
+					},
+				},
+			},
+		},
+	}
+}
+
 func (c *AppsMetricsPlugin) Run(cliConnection plugin.CliConnection, args []string) {
 	traceLogger := trace.NewLogger(os.Stdout, true, os.Getenv("CF_TRACE"), "")
 	c.ui = terminal.NewUI(os.Stdin, os.Stdout, terminal.NewTeePrinter(os.Stdout), traceLogger)
@@ -113,36 +143,6 @@ func parseArguments(args []string) (flags.FlagContext, error) {
 		return nil, err
 	}
 	return fc, nil
-}
-
-func (c *AppsMetricsPlugin) GetMetadata() plugin.PluginMetadata {
-	return plugin.PluginMetadata{
-		Name: "AppMetricsPlugin",
-		Version: plugin.VersionType{
-			Major: 1,
-			Minor: 0,
-			Build: 0,
-		},
-		MinCliVersion: plugin.VersionType{
-			Major: 6,
-			Minor: 7,
-			Build: 0,
-		},
-		Commands: []plugin.Command{
-			{
-				Name:     "app-metrics",
-				HelpText: "Hits the metrics endpoint across all your app instances",
-
-				UsageDetails: plugin.Usage{
-					Usage: "cf app-metrics APP_NAME",
-					Options: map[string]string{
-						"endpoint": "path of the metrics endpoint",
-						"template": "path of the template files to render metrics",
-					},
-				},
-			},
-		},
-	}
 }
 
 func main() {
