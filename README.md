@@ -97,7 +97,7 @@ Metrics:
 
 ## Future Work
 
-See the issues section for thoughts on what needs to be added later.
+See the [project][project] for what is in the To Do list.
 
 
 ## Releasing
@@ -129,3 +129,4 @@ In order to create a new release, follow these steps
 [prometheus]:       https://prometheus.io/docs/practices/instrumentation/
 [expvar]:           https://golang.org/pkg/expvar/
 [godropwizard]:     https://github.com/rcrowley/go-metrics
+[project]:          https://github.com/wfernandes/app-metrics-plugin/projects/1
