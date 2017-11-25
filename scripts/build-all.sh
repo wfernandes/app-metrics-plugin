@@ -1,6 +1,10 @@
 #!/bin/sh
-
 set -e
+
+PROJECT_DIR="$(cd "$(dirname "$0")/.."; pwd)"
+LINUX_FILENAME="app-metrics-plugin-linux"
+MAC_FILENAME="app-metrics-plugin-darwin"
+WIN_FILENAME="app-metrics-plugin.exe"
 
 if [[ "$1" = "release" ]] ; then
 	TAG="$2"
@@ -17,14 +21,10 @@ if [[ "$1" = "release" ]] ; then
 
 		`sed -i "" -e "1,/Major:.*/s/Major:.*/Major: $MAJOR,/" \
 			-e "1,/Minor:.*/s/Minor:.*/Minor: $MINOR,/" \
-			-e "1,/Build:.*/s/Build:.*/Build: $BUILD,/" main.go`
+			-e "1,/Build:.*/s/Build:.*/Build: $BUILD,/" ${PROJECT_DIR}/cmd/plugin/app_metrics.go`
 	fi
 fi
 
-PROJECT_DIR="$(cd "$(dirname "$0")/.."; pwd)"
-LINUX_FILENAME="app-metrics-plugin-linux"
-MAC_FILENAME="app-metrics-plugin-darwin"
-WIN_FILENAME="app-metrics-plugin.exe"
 
 GOOS=linux GOARCH=amd64 go build -o $LINUX_FILENAME ${PROJECT_DIR}/cmd/plugin/app_metrics.go
 LINUX64_SHA1=`cat $LINUX_FILENAME | openssl sha1`
