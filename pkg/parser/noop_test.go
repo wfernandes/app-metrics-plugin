@@ -3,7 +3,7 @@ package parser_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/wfernandes/apps-metrics-plugin/pkg/parser"
+	"github.com/wfernandes/app-metrics-plugin/pkg/parser"
 )
 
 var _ = Describe("NoOp", func() {

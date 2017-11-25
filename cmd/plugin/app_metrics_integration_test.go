@@ -14,7 +14,7 @@ import (
 	. "code.cloudfoundry.org/cli/util/testhelpers/io"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	. "github.com/wfernandes/apps-metrics-plugin/cmd/plugin"
+	. "github.com/wfernandes/app-metrics-plugin/cmd/plugin"
 )
 
 var _ = Describe("AppsMetrics Integration", func() {
@@ -35,7 +35,7 @@ var _ = Describe("AppsMetrics Integration", func() {
 
 		appsMetricsPlugin := &AppsMetricsPlugin{}
 		output := CaptureOutput(func() {
-			appsMetricsPlugin.Run(fakeCliConnection, []string{"apps-metrics", "some-app", "-endpoint", endpoint})
+			appsMetricsPlugin.Run(fakeCliConnection, []string{"app-metrics", "some-app", "-endpoint", endpoint})
 		})
 
 		Expect(output).To(ContainElement("[{\"Instance\":0,\"Output\":\"this is my metrics output\",\"Error\":\"\"}]"))
@@ -57,7 +57,7 @@ var _ = Describe("AppsMetrics Integration", func() {
 
 		appsMetricsPlugin := &AppsMetricsPlugin{}
 		output := CaptureOutput(func() {
-			appsMetricsPlugin.Run(fakeCliConnection, []string{"apps-metrics", "some-app", "-endpoint", endpoint})
+			appsMetricsPlugin.Run(fakeCliConnection, []string{"app-metrics", "some-app", "-endpoint", endpoint})
 		})
 
 		Expect(output).To(ContainElement("Instance: 0"))
@@ -92,7 +92,7 @@ var _ = Describe("AppsMetrics Integration", func() {
 
 		plugin := &AppsMetricsPlugin{}
 		output := CaptureOutput(func() {
-			plugin.Run(fakeCliConnection, []string{"apps-metrics", "some-app", "-template", tmpfile.Name()})
+			plugin.Run(fakeCliConnection, []string{"app-metrics", "some-app", "-template", tmpfile.Name()})
 		})
 		Expect(output).To(HaveLen(3))
 		Expect(output).To(ContainElement(`0 {"ingress.received":222}`))
@@ -115,7 +115,7 @@ var _ = Describe("AppsMetrics Integration", func() {
 
 		plugin := &AppsMetricsPlugin{}
 		output := CaptureOutput(func() {
-			plugin.Run(fakeCliConnection, []string{"apps-metrics", "some-app", "-template", "/some/file/path"})
+			plugin.Run(fakeCliConnection, []string{"app-metrics", "some-app", "-template", "/some/file/path"})
 		})
 		Expect(output).To(HaveLen(3))
 		Expect(output[0]).To(Equal("FAILED"))

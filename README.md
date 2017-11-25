@@ -1,5 +1,5 @@
 ![CI Badge][ci-badge]
-# Apps Metrics Plugin
+# App Metrics Plugin
 
 This is a CF CLI plugin. See [here][cf-cli] for more details.
 
@@ -45,10 +45,10 @@ and `memstats` as they tend to clutter up the output.
 
 ```
 NAME:
-   apps-metrics - Hits the metrics endpoint across all your app instances
+   app-metrics - Hits the metrics endpoint across all your app instances
 
 USAGE:
-   cf apps-metrics APP_NAME
+   cf app-metrics APP_NAME
 
 OPTIONS:
    -endpoint       path of the metrics endpoint
@@ -70,7 +70,7 @@ cf uninstall-plugin AppsMetricsPlugin
 
 ## Sample Output
 ```bash
-$ cf apps-metrics event-alerts
+$ cf app-metrics event-alerts
 
 Instance: 0
 Metrics:
@@ -99,7 +99,7 @@ Metrics:
 
 See the issues section for thoughts on what needs to be added later.
 
-[ci-badge]:     https://travis-ci.org/wfernandes/apps-metrics-plugin.svg?branch=master
+[ci-badge]:     https://travis-ci.org/wfernandes/app-metrics-plugin.svg?branch=master
 [cf-cli]:       https://docs.cloudfoundry.org/cf-cli/develop-cli-plugins.html
 [dropwizard]:   http://metrics.dropwizard.io/3.2.3/
 [prometheus]:   https://prometheus.io/docs/practices/instrumentation/

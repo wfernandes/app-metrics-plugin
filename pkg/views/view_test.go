@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"text/template"
 
-	"github.com/wfernandes/apps-metrics-plugin/pkg/agent"
-	"github.com/wfernandes/apps-metrics-plugin/pkg/views"
+	"github.com/wfernandes/app-metrics-plugin/pkg/agent"
+	"github.com/wfernandes/app-metrics-plugin/pkg/views"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

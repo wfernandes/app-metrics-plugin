@@ -10,9 +10,9 @@ import (
 	"code.cloudfoundry.org/cli/cf/terminal"
 	"code.cloudfoundry.org/cli/cf/trace"
 	"code.cloudfoundry.org/cli/plugin"
-	"github.com/wfernandes/apps-metrics-plugin/pkg/agent"
-	"github.com/wfernandes/apps-metrics-plugin/pkg/parser"
-	"github.com/wfernandes/apps-metrics-plugin/pkg/views"
+	"github.com/wfernandes/app-metrics-plugin/pkg/agent"
+	"github.com/wfernandes/app-metrics-plugin/pkg/parser"
+	"github.com/wfernandes/app-metrics-plugin/pkg/views"
 )
 
 type AppsMetricsPlugin struct {
@@ -24,7 +24,7 @@ func (c *AppsMetricsPlugin) Run(cliConnection plugin.CliConnection, args []strin
 	c.ui = terminal.NewUI(os.Stdin, os.Stdout, terminal.NewTeePrinter(os.Stdout), traceLogger)
 
 	switch args[0] {
-	case "apps-metrics":
+	case "app-metrics":
 
 		if len(args) < 2 {
 			c.ui.Say(c.GetMetadata().Commands[0].UsageDetails.Usage)
@@ -33,7 +33,7 @@ func (c *AppsMetricsPlugin) Run(cliConnection plugin.CliConnection, args []strin
 
 		c.getMetrics(cliConnection, args)
 	case "CLI-MESSAGE-UNINSTALL":
-		c.ui.Say("Thank you for using apps-metrics")
+		c.ui.Say("Thank you for using app-metrics")
 	}
 
 }
@@ -117,7 +117,7 @@ func parseArguments(args []string) (flags.FlagContext, error) {
 
 func (c *AppsMetricsPlugin) GetMetadata() plugin.PluginMetadata {
 	return plugin.PluginMetadata{
-		Name: "AppsMetricsPlugin",
+		Name: "AppMetricsPlugin",
 		Version: plugin.VersionType{
 			Major: 1,
 			Minor: 0,
@@ -130,11 +130,11 @@ func (c *AppsMetricsPlugin) GetMetadata() plugin.PluginMetadata {
 		},
 		Commands: []plugin.Command{
 			{
-				Name:     "apps-metrics",
+				Name:     "app-metrics",
 				HelpText: "Hits the metrics endpoint across all your app instances",
 
 				UsageDetails: plugin.Usage{
-					Usage: "cf apps-metrics APP_NAME",
+					Usage: "cf app-metrics APP_NAME",
 					Options: map[string]string{
 						"endpoint": "path of the metrics endpoint",
 						"template": "path of the template files to render metrics",

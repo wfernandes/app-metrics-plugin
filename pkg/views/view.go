@@ -7,7 +7,7 @@ import (
 	"os"
 	"text/template"
 
-	"github.com/wfernandes/apps-metrics-plugin/pkg/agent"
+	"github.com/wfernandes/app-metrics-plugin/pkg/agent"
 )
 
 type ViewOpt func(*View)

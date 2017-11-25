@@ -11,7 +11,7 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/cli/plugin/models"
-	"github.com/wfernandes/apps-metrics-plugin/pkg/agent"
+	"github.com/wfernandes/app-metrics-plugin/pkg/agent"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

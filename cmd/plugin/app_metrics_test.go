@@ -8,7 +8,7 @@ import (
 	. "code.cloudfoundry.org/cli/util/testhelpers/io"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	. "github.com/wfernandes/apps-metrics-plugin/cmd/plugin"
+	. "github.com/wfernandes/app-metrics-plugin/cmd/plugin"
 )
 
 var _ = Describe("AppsMetrics", func() {
@@ -18,10 +18,10 @@ var _ = Describe("AppsMetrics", func() {
 		appsMetricsPlugin := &AppsMetricsPlugin{}
 
 		output := CaptureOutput(func() {
-			appsMetricsPlugin.Run(fakeCliConnection, []string{"apps-metrics"})
+			appsMetricsPlugin.Run(fakeCliConnection, []string{"app-metrics"})
 		})
 
-		Expect(output).To(ContainElement("cf apps-metrics APP_NAME"))
+		Expect(output).To(ContainElement("cf app-metrics APP_NAME"))
 	})
 
 	It("prints error for unknown app", func() {
@@ -30,7 +30,7 @@ var _ = Describe("AppsMetrics", func() {
 		appsMetricsPlugin := &AppsMetricsPlugin{}
 
 		output := CaptureOutput(func() {
-			appsMetricsPlugin.Run(fakeCliConnection, []string{"apps-metrics", "iDoNotExist"})
+			appsMetricsPlugin.Run(fakeCliConnection, []string{"app-metrics", "iDoNotExist"})
 		})
 
 		Expect(output).To(ContainElement("iDoNotExist does not exist"))
@@ -46,7 +46,7 @@ var _ = Describe("AppsMetrics", func() {
 		plugin := &AppsMetricsPlugin{}
 
 		output := CaptureOutput(func() {
-			plugin.Run(fakeCliConnection, []string{"apps-metrics", "some-app"})
+			plugin.Run(fakeCliConnection, []string{"app-metrics", "some-app"})
 		})
 
 		Expect(output).To(ContainElement("unable to get metrics: app does not have any routes to hit"))
@@ -59,7 +59,7 @@ var _ = Describe("AppsMetrics", func() {
 		plugin := &AppsMetricsPlugin{}
 
 		output := CaptureOutput(func() {
-			plugin.Run(fakeCliConnection, []string{"apps-metrics", "some-app", "-unknownFlag"})
+			plugin.Run(fakeCliConnection, []string{"app-metrics", "some-app", "-unknownFlag"})
 		})
 
 		Expect(output).To(ContainElement("Invalid flag: -unknownFlag"))
@@ -73,7 +73,7 @@ var _ = Describe("AppsMetrics", func() {
 			plugin.Run(fakeCliConnection, []string{"CLI-MESSAGE-UNINSTALL"})
 		})
 
-		Expect(output).To(ContainElement("Thank you for using apps-metrics"))
+		Expect(output).To(ContainElement("Thank you for using app-metrics"))
 	})
 
 })
