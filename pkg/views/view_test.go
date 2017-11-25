@@ -28,6 +28,7 @@ var _ = Describe("Views", func() {
 
 			Expect(bufStr).To(ContainSubstring("Instance: 0"))
 			Expect(bufStr).To(ContainSubstring("Metrics:"))
+			Expect(bufStr).To(ContainSubstring("  metric.map: {\"metric1\": 10, \"metric2\": 11}"))
 			Expect(bufStr).To(ContainSubstring("  ingress.matched: 11"))
 			Expect(bufStr).To(ContainSubstring("  ingress.received: 5850203"))
 			Expect(bufStr).To(ContainSubstring("  notifier.dropped: 0"))
@@ -102,7 +103,7 @@ var _ = Describe("Views", func() {
 
 var jsonMetricsOutput = `[{
 "Instance": 0,
-"Output": "{\"ingress.matched\":11,\"ingress.received\":5850203,\"notifier.dropped\":0,\"notifier.emails.failed\":0,\"notifier.emails.sent\":11}",
+"Output": "{\"metric.map\": {\"metric1\": 10, \"metric2\": 11},\"ingress.matched\":11,\"ingress.received\":5850203,\"notifier.dropped\":0,\"notifier.emails.failed\":0,\"notifier.emails.sent\":11}",
 "Error": ""
 },{
 "Instance": 1,
