@@ -1,0 +1,21 @@
+- name: AppsMetrics Plugin
+  description: This plugin allows you to hit a metrics endpoint across all your app instances
+  version: __TAG__
+  created: 2017-11-24T00:00:00Z
+  updated: __TODAY__
+  company:
+  authors:
+  - name: Warren Fernandes
+    homepage: https://github.com/wfernandes
+    contact: warren.f.fernandes@gmail.com
+  homepage: http://github.com/wfernandes/app-metrics-plugin
+  binaries:
+  - platform: osx
+    url: https://github.com/wfernandes/app-metrics-plugin/releases/download/__TAG__/app-metrics-plugin-darwin
+    checksum: __osx-sha1__
+  - platform: win64
+    url: https://github.com/wfernandes/app-metrics-plugin/releases/download/__TAG__/app-metrics-plugin.exe
+    checksum: __win64-sha1__
+  - platform: linux64
+    url: https://github.com/wfernandes/app-metrics-plugin/releases/download/__TAG__/app-metrics-plugin-linux
+    checksum: __linux64-sha1__

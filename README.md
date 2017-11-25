@@ -1,4 +1,4 @@
-![CI Badge][ci-badge]
+[![CI Badge][ci-badge]][ci-badge-link]
 # App Metrics Plugin
 
 This is a CF CLI plugin. See [here][cf-cli] for more details.
@@ -99,9 +99,33 @@ Metrics:
 
 See the issues section for thoughts on what needs to be added later.
 
-[ci-badge]:     https://travis-ci.org/wfernandes/app-metrics-plugin.svg?branch=master
-[cf-cli]:       https://docs.cloudfoundry.org/cf-cli/develop-cli-plugins.html
-[dropwizard]:   http://metrics.dropwizard.io/3.2.3/
-[prometheus]:   https://prometheus.io/docs/practices/instrumentation/
-[expvar]:       https://golang.org/pkg/expvar/
-[godropwizard]: https://github.com/rcrowley/go-metrics
+
+## Releasing
+
+In order to create a new release, follow these steps
+
+1. Create local tag and binaries
+  ```
+  ./scripts/build-all.sh release VERSION_NUMBER #(e.g. 0.7.0)
+  ```
+1. Copy the output of the previous command from the first line (should be '- name: AppsMetrics Plugin' to the last checksum line (should be something like checksum: fde5fd52c40ea4c34330426c09c143a76a77a8db)
+1. Push the tag `git push --follow-tags`
+1. On github, create new release based on new tag [here](https://github.com/cloudfoundry-community/firehose-plugin/releases/new)
+1. Upload the three binaries from the ./bin folders to the release (Linux, OSX and Win64)
+1. Fork [this repo](https://github.com/cloudfoundry-incubator/cli-plugin-repo) and clone it locally
+1. Edit the repo-index.yml
+  ```
+  vi repo-index.yml
+  ```
+  to override the existing section about the firehose plugin with the text previously copied in Step 2.
+1. Push the change to your fork
+1. Create a PR against the [original repo](https://github.com/cloudfoundry-incubator/cli-plugin-repo/compare)
+
+
+[ci-badge-link]:    https://travis-ci.org/wfernandes/app-metrics-plugin
+[ci-badge]:         https://travis-ci.org/wfernandes/app-metrics-plugin.svg?branch=master
+[cf-cli]:           https://docs.cloudfoundry.org/cf-cli/develop-cli-plugins.html
+[dropwizard]:       http://metrics.dropwizard.io/3.2.3/
+[prometheus]:       https://prometheus.io/docs/practices/instrumentation/
+[expvar]:           https://golang.org/pkg/expvar/
+[godropwizard]:     https://github.com/rcrowley/go-metrics
