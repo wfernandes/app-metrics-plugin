@@ -52,6 +52,7 @@ USAGE:
 
 OPTIONS:
    -endpoint       path of the metrics endpoint
+   -template       path of the template files to render metrics
 
 ```
 
