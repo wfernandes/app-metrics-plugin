@@ -1,0 +1,10 @@
+---
+applications:
+- name: expvar-sample
+  memory: 512M
+  instances: 1
+  buildpack: go_buildpack
+  command: main
+  env:
+    GOVERSION: go1.8
+    GOPACKAGENAME: main
