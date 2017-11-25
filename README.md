@@ -3,7 +3,7 @@
 
 This is a CF CLI plugin. See [here][cf-cli] for more details.
 
-This plugin hits your app's metrics endpoint *across all your app instances* and displays human readable output.
+This plugin hits your app's metrics endpoint **across all your app instances** and displays human readable output.
 
 ## Purpose
 Instrumenting applications with various metrics to provide insight into its operation is an important practice for
