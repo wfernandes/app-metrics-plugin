@@ -76,7 +76,7 @@ func (a *Agent) GetMetrics(ctx context.Context) (outputs []MetricOuput, err erro
 	}
 	outputs = make([]MetricOuput, 0, a.app.RunningInstances)
 	defer func() {
-		// make sure the output is sorted
+		// make sure the output is sorted. we used named return values here because of this.
 		sort.Sort(byInstance(outputs))
 	}()
 
