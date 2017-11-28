@@ -63,7 +63,7 @@ OPTIONS:
 ## Uninstall
 
 ```bash
-cf uninstall-plugin AppsMetricsPlugin
+cf uninstall-plugin AppMetricsPlugin
 ```
 
 ## Tests
