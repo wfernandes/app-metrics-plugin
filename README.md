@@ -109,6 +109,7 @@ In order to create a new release, follow these steps
 1. Fork [this repo](https://github.com/cloudfoundry-incubator/cli-plugin-repo) and clone it locally
 1. Edit the `repo-index.yml` to override the existing section about the plugin with the text previously copied in Step 2
 1. Run `go run sort/main.go repo-index.yml` in the cli-plugin-repo to alphabetize the properties
+1. Run `BINARY_VALIDATION=true go test`
 1. Push the change to your fork
 1. Create a PR against the [original repo](https://github.com/cloudfoundry-incubator/cli-plugin-repo/compare)
 
