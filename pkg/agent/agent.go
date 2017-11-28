@@ -133,7 +133,13 @@ func (a *Agent) makeRequest(url string, i int, ctx context.Context) MetricOuput 
 		parsed = bytes
 	}
 
+	if !(resp.StatusCode >= 200 && resp.StatusCode < 300) {
+		// We got a form of non-200 back
+		return buildMetricOutput(i, "", errors.New(string(parsed)))
+	}
+
 	return buildMetricOutput(i, string(parsed), nil)
+
 }
 
 func (a *Agent) buildURL() (string, error) {

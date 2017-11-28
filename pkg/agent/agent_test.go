@@ -195,6 +195,35 @@ var _ = Describe("Agent", func() {
 		Expect(output[0].Error).To(Equal(io.ErrUnexpectedEOF.Error()))
 	})
 
+	It("returns output error when reponse code is non-200s", func() {
+		fakeClient := NewFakeClient()
+		fakeClient.SetResponse("404 page not found\n")
+		fakeClient.SetResponseStatus(http.StatusNotFound)
+		fakeApp := &plugin_models.GetAppModel{
+			RunningInstances: 1,
+			Instances: []plugin_models.GetApp_AppInstanceFields{
+				{
+					State: "running",
+				},
+			},
+			Routes: []plugin_models.GetApp_RouteSummary{
+				{
+					Domain: plugin_models.GetApp_DomainFields{
+						Name: "domain.cf-app.com",
+					},
+				},
+			},
+		}
+		a := agent.New(fakeApp, agent.WithClient(fakeClient))
+		output, err := a.GetMetrics(context.Background())
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(output).To(HaveLen(1))
+		Expect(output[0].Instance).To(Equal(0))
+		Expect(output[0].Output).To(BeEmpty())
+		Expect(output[0].Error).To(Equal("404 page not found\n"))
+	})
+
 	It("sends GET request with X-CF-APP-INSTANCE header for app with multiple instances", func() {
 		fakeClient := NewFakeClient()
 		fakeApp := &plugin_models.GetAppModel{
@@ -291,6 +320,7 @@ var _ = Describe("Agent", func() {
 		Expect(output).To(HaveLen(1))
 		Expect(output[0].Output).To(Equal("some response body"))
 	})
+
 })
 
 type FakeParser struct {
@@ -329,17 +359,19 @@ func (p *FakeParser) ParseCalledWith() []byte {
 }
 
 type FakeClient struct {
-	mu         sync.Mutex
-	requests   []*http.Request
-	body       string
-	err        error
-	readerFail bool
+	mu             sync.Mutex
+	requests       []*http.Request
+	body           string
+	err            error
+	readerFail     bool
+	responseStatus int
 }
 
 func NewFakeClient() *FakeClient {
 	return &FakeClient{
-		requests: make([]*http.Request, 0),
-		body:     "some default response",
+		requests:       make([]*http.Request, 0),
+		body:           "some default response",
+		responseStatus: http.StatusOK,
 	}
 }
 
@@ -351,11 +383,13 @@ func (f *FakeClient) Do(r *http.Request) (*http.Response, error) {
 	var resp *http.Response
 	if f.readerFail {
 		resp = &http.Response{
-			Body: ioutil.NopCloser(&FakeReader{}),
+			StatusCode: http.StatusInternalServerError,
+			Body:       ioutil.NopCloser(&FakeReader{}),
 		}
 	} else {
 		resp = &http.Response{
-			Body: ioutil.NopCloser(bytes.NewBufferString(f.body)),
+			StatusCode: f.responseStatus,
+			Body:       ioutil.NopCloser(bytes.NewBufferString(f.body)),
 		}
 	}
 
@@ -388,6 +422,13 @@ func (f *FakeClient) SetResponse(body string) {
 	defer f.mu.Unlock()
 
 	f.body = body
+}
+
+func (f *FakeClient) SetResponseStatus(status int) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	f.responseStatus = status
 }
 
 func (f *FakeClient) SetBadResponse() {
