@@ -37,6 +37,9 @@ and `memstats` as they tend to clutter up the output.
 
 ## Install
 ```bash
+# To install latest release
+cf install-plugin -r CF-Community "AppsMetrics Plugin"
+
 # To install a dev build of the plugin
 ./scripts/install.sh
 ```
@@ -52,6 +55,7 @@ USAGE:
 
 OPTIONS:
    -endpoint       path of the metrics endpoint
+   -raw            prints raw json output
    -template       path of the template files to render metrics
 
 ```

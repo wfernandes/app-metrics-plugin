@@ -42,6 +42,7 @@ func (c *AppsMetricsPlugin) GetMetadata() plugin.PluginMetadata {
 					Options: map[string]string{
 						"endpoint": "path of the metrics endpoint",
 						"template": "path of the template files to render metrics",
+						"raw":      "prints raw json output",
 					},
 				},
 			},
