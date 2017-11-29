@@ -74,23 +74,40 @@ cf uninstall-plugin AppMetricsPlugin
 
 ## Sample Output
 ```bash
-$ cf app-metrics event-alerts
+# Default Template
+$ cf app-metrics expvar-sample -endpoint /debug/vars
 
 Instance: 0
 Metrics:
   metric.float: 123.345
   metric.int: 10
-  metric.map: {"metric1":10,"metric2":11}
-  metric.string: "expvarApp"
+  metric.map: map[metric1:10 metric2:11]
+  metric.string: expvarApp
 
 Instance: 1
 Metrics:
   metric.float: 123.345
   metric.int: 10
-  metric.map: {"metric1":10,"metric2":11}
-  metric.string: "expvarApp"
+  metric.map: map[metric1:10 metric2:11]
+  metric.string: expvarApp
 
-
+# Raw output
+$ cf app-metrics expvar-sample -endpoint /debug/vars -raw | jq .
+[
+  {
+    "Instance": 0,
+    "Error": "",
+    "Metrics": {
+      "metric.float": 123.345,
+      "metric.int": 10,
+      "metric.map": {
+        "metric1": 10,
+        "metric2": 11
+      },
+      "metric.string": "expvarApp"
+    }
+  }
+]
 ```
 
 ## Future Work
