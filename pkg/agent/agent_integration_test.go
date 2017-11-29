@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/wfernandes/app-metrics-plugin/pkg/agent"
+	"github.com/wfernandes/app-metrics-plugin/pkg/parser"
 )
 
 var _ = Describe("Agent", func() {
@@ -31,18 +32,19 @@ var _ = Describe("Agent", func() {
 		model := buildAppModel(strings.TrimPrefix(ts.URL, "http://"), 3)
 		// use a client with very low tolerance for slow requests
 		httpClient := &http.Client{Timeout: 100 * time.Millisecond}
+		parser := parser.NewExpvar()
 
-		a := agent.New(&model, agent.WithClient(httpClient))
+		a := agent.New(&model, parser, agent.WithClient(httpClient))
 		output, err := a.GetMetrics(context.Background())
 		Expect(err).ToNot(HaveOccurred())
 		Eventually(output).Should(HaveLen(3))
 		for _, m := range output {
 			if m.Instance == 1 {
-				Expect(m.Output).To(BeEmpty())
+				Expect(m.Metrics).To(BeEmpty())
 				Expect(m.Error).ToNot(BeEmpty())
 				continue
 			}
-			Expect(m.Output).ToNot(BeEmpty())
+			Expect(m.Metrics).ToNot(BeEmpty())
 			Expect(m.Error).To(BeEmpty())
 		}
 	})
@@ -65,10 +67,11 @@ var _ = Describe("Agent", func() {
 		model := buildAppModel(strings.TrimPrefix(ts.URL, "http://"), 2)
 		httpClient := &http.Client{Timeout: 10 * time.Second}
 		ctx, cancel := context.WithCancel(context.Background())
+		parser := parser.NewExpvar()
 
-		a := agent.New(&model, agent.WithClient(httpClient))
+		a := agent.New(&model, parser, agent.WithClient(httpClient))
 
-		outputs := make(chan []agent.MetricOuput, 2)
+		outputs := make(chan []agent.InstanceMetric, 2)
 		errs := make(chan error)
 		go func() {
 			o, err := a.GetMetrics(ctx)
@@ -79,7 +82,7 @@ var _ = Describe("Agent", func() {
 		time.Sleep(time.Second)
 		cancel()
 
-		var results []agent.MetricOuput
+		var results []agent.InstanceMetric
 		Eventually(errs).Should(Receive())
 		Eventually(outputs).Should(Receive(&results))
 		Expect(results).To(HaveLen(1))
@@ -95,8 +98,9 @@ var _ = Describe("Agent", func() {
 		})
 		// trimming the scheme because we'll build the url back from app model
 		model := buildAppModel(strings.TrimPrefix(ts.URL, "http://"), 3)
+		parser := parser.NewExpvar()
 
-		a := agent.New(&model)
+		a := agent.New(&model, parser)
 
 		output, err := a.GetMetrics(context.Background())
 

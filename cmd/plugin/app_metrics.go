@@ -56,7 +56,6 @@ func (c *AppsMetricsPlugin) Run(cliConnection plugin.CliConnection, args []strin
 
 	switch args[0] {
 	case "app-metrics":
-
 		if len(args) < 2 {
 			c.ui.Say(c.GetMetadata().Commands[0].UsageDetails.Usage)
 			return
@@ -92,12 +91,13 @@ func (c *AppsMetricsPlugin) getMetrics(cliConnection plugin.CliConnection, args 
 	if fc.IsSet("endpoint") {
 		client = agent.New(
 			&app,
-			agent.WithParser(parser.NewExpvar([]string{"cmdline", "memstats"})),
+			parser.NewExpvar(parser.WithPropertiesToRemove([]string{"cmdline", "memstats"})),
 			agent.WithMetricsPath(fc.String("endpoint")))
 	} else {
 		client = agent.New(
 			&app,
-			agent.WithParser(parser.NewExpvar([]string{"cmdline", "memstats"})))
+			parser.NewExpvar(parser.WithPropertiesToRemove([]string{"cmdline", "memstats"})),
+		)
 	}
 
 	// Make the request(s) and get the data
@@ -131,7 +131,7 @@ func (c *AppsMetricsPlugin) getMetrics(cliConnection plugin.CliConnection, args 
 	}
 }
 
-func (c *AppsMetricsPlugin) printDefault(metrics []agent.MetricOuput) {
+func (c *AppsMetricsPlugin) printDefault(metrics []agent.InstanceMetric) {
 	bytes, err := json.Marshal(metrics)
 	if err != nil {
 		c.ui.Warn("unable to marshal metrics: %s\n", err)

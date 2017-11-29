@@ -1,7 +1,6 @@
 package views
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -42,7 +41,7 @@ func New(opts ...ViewOpt) *View {
 	return v
 }
 
-func (v *View) Present(m []agent.MetricOuput) error {
+func (v *View) Present(m []agent.InstanceMetric) error {
 
 	err := v.tmpl.Execute(v.writer, m)
 	if err != nil {
@@ -53,15 +52,14 @@ func (v *View) Present(m []agent.MetricOuput) error {
 
 func buildDefaultTemplate() *template.Template {
 	t := template.New("default")
-	t = t.Funcs(template.FuncMap{"metricsParse": ParseMetrics})
 	// TODO: Ignoring this error for now
 	t, _ = t.Parse(`
 {{- range .}}
 Instance: {{.Instance}}
-{{ if .Output -}}
+{{ if .Metrics -}}
 Metrics:
-  {{- range $k, $v := metricsParse .Output}}
-  {{print $k}}: {{printf "%s" $v -}}
+  {{- range $k, $v := .Metrics}}
+  {{print $k}}: {{print $v -}}
   {{end -}}
 {{else -}}
 Error: {{.Error}}
@@ -69,10 +67,4 @@ Error: {{.Error}}
 {{end}}`)
 
 	return t
-}
-
-func ParseMetrics(s string) (map[string]json.RawMessage, error) {
-	metrics := make(map[string]json.RawMessage)
-	err := json.Unmarshal([]byte(s), &metrics)
-	return metrics, err
 }

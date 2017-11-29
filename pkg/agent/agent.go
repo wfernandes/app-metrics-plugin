@@ -10,13 +10,12 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/cli/plugin/models"
-	"github.com/wfernandes/app-metrics-plugin/pkg/parser"
 )
 
-type MetricOuput struct {
+type InstanceMetric struct {
 	Instance int
-	Output   string
 	Error    string
+	Metrics  map[string]interface{}
 }
 
 type HTTPClient interface {
@@ -24,7 +23,7 @@ type HTTPClient interface {
 }
 
 type Parser interface {
-	Parse([]byte) ([]byte, error)
+	Parse([]byte) (map[string]interface{}, error)
 }
 
 type Agent struct {
@@ -42,24 +41,18 @@ func WithClient(c HTTPClient) AgentOpt {
 	}
 }
 
-func WithParser(p Parser) AgentOpt {
-	return func(a *Agent) {
-		a.parser = p
-	}
-}
-
 func WithMetricsPath(p string) AgentOpt {
 	return func(a *Agent) {
 		a.path = p
 	}
 }
 
-func New(model *plugin_models.GetAppModel, opts ...AgentOpt) *Agent {
+func New(m *plugin_models.GetAppModel, p Parser, opts ...AgentOpt) *Agent {
 	a := &Agent{
-		app:    model,
+		app:    m,
+		parser: p,
 		path:   "/debug/metrics",
 		client: &http.Client{Timeout: 5 * time.Second},
-		parser: parser.NewNoOp(),
 	}
 
 	for _, o := range opts {
@@ -69,19 +62,19 @@ func New(model *plugin_models.GetAppModel, opts ...AgentOpt) *Agent {
 	return a
 }
 
-func (a *Agent) GetMetrics(ctx context.Context) (outputs []MetricOuput, err error) {
+func (a *Agent) GetMetrics(ctx context.Context) (outputs []InstanceMetric, err error) {
 	url, err := a.buildURL()
 	if err != nil {
 		return nil, err
 	}
-	outputs = make([]MetricOuput, 0, a.app.RunningInstances)
+	outputs = make([]InstanceMetric, 0, a.app.RunningInstances)
 	defer func() {
 		// make sure the output is sorted. we used named return values here because of this.
 		sort.Sort(byInstance(outputs))
 	}()
 
 	// TODO we need to fan-in results
-	results := make(chan MetricOuput, a.app.RunningInstances)
+	results := make(chan *InstanceMetric, a.app.RunningInstances)
 
 	for i, instance := range a.app.Instances {
 		if instance.State != "running" {
@@ -98,7 +91,7 @@ func (a *Agent) GetMetrics(ctx context.Context) (outputs []MetricOuput, err erro
 	for {
 		select {
 		case r := <-results:
-			outputs = append(outputs, r)
+			outputs = append(outputs, *r)
 			if len(outputs) == a.app.RunningInstances {
 				return outputs, nil
 			}
@@ -110,36 +103,30 @@ func (a *Agent) GetMetrics(ctx context.Context) (outputs []MetricOuput, err erro
 	return outputs, nil
 }
 
-func (a *Agent) makeRequest(url string, i int, ctx context.Context) MetricOuput {
+func (a *Agent) makeRequest(url string, i int, ctx context.Context) *InstanceMetric {
 	request, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		return buildMetricOutput(i, "", err)
+		return &InstanceMetric{Instance: i, Error: err.Error()}
 	}
 	request.Header.Add("X-CF-APP-INSTANCE", fmt.Sprintf("%s:%d", a.app.Guid, i))
 	request = request.WithContext(ctx)
 
 	resp, err := a.client.Do(request)
 	if err != nil {
-		return buildMetricOutput(i, "", err)
+		return &InstanceMetric{Instance: i, Error: err.Error()}
 	}
 	defer resp.Body.Close()
 	bytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return buildMetricOutput(i, "", err)
+		return &InstanceMetric{Instance: i, Error: err.Error()}
 	}
 
-	parsed, err := a.parser.Parse(bytes)
+	metrics, err := a.parser.Parse(bytes)
 	if err != nil {
-		parsed = bytes
+		return &InstanceMetric{Instance: i, Error: fmt.Sprintf("unable to parse response: %s", err)}
 	}
 
-	if !(resp.StatusCode >= 200 && resp.StatusCode < 300) {
-		// We got a form of non-200 back
-		return buildMetricOutput(i, "", errors.New(string(parsed)))
-	}
-
-	return buildMetricOutput(i, string(parsed), nil)
-
+	return &InstanceMetric{Instance: i, Metrics: metrics}
 }
 
 func (a *Agent) buildURL() (string, error) {
@@ -157,18 +144,7 @@ func (a *Agent) buildURL() (string, error) {
 	return url, nil
 }
 
-func buildMetricOutput(instance int, output string, err error) MetricOuput {
-	mo := MetricOuput{
-		Instance: instance,
-		Output:   output,
-	}
-	if err != nil {
-		mo.Error = err.Error()
-	}
-	return mo
-}
-
-type byInstance []MetricOuput
+type byInstance []InstanceMetric
 
 func (s byInstance) Len() int {
 	return len(s)

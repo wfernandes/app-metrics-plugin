@@ -1,6 +1,8 @@
 package parser_test
 
 import (
+	"encoding/json"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/wfernandes/app-metrics-plugin/pkg/parser"
@@ -9,15 +11,19 @@ import (
 var _ = Describe("Expvar", func() {
 
 	It("removes expvar properties cmdline and memstats", func() {
-		p := parser.NewExpvar([]string{"cmdline", "memstats"})
+		p := parser.NewExpvar(parser.WithPropertiesToRemove([]string{"cmdline", "memstats"}))
 		output, err := p.Parse([]byte(expvarJSON))
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(output).To(MatchJSON(expectedJSON))
+		Expect(output).To(HaveLen(5))
+		b, err := json.Marshal(output)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(b).To(MatchJSON(expectedJSON))
+
 	})
 
 	It("returns error when unable to unmarshal", func() {
-		p := parser.NewExpvar([]string{"cmdline", "memstats"})
+		p := parser.NewExpvar()
 		_, err := p.Parse([]byte(`{"a": 123, "b": 456,}`))
 
 		Expect(err).To(HaveOccurred())

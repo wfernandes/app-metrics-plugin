@@ -15,8 +15,8 @@ import (
 var _ = Describe("Views", func() {
 	Context("with default template", func() {
 		It("displays the metrics data", func() {
-			metrics := []agent.MetricOuput{}
-			err := json.Unmarshal([]byte(jsonMetricsOutput), &metrics)
+			metrics := []agent.InstanceMetric{}
+			err := json.Unmarshal([]byte(getMetricsOutput), &metrics)
 			Expect(err).ToNot(HaveOccurred())
 			buf := &bytes.Buffer{}
 
@@ -28,32 +28,20 @@ var _ = Describe("Views", func() {
 
 			Expect(bufStr).To(ContainSubstring("Instance: 0"))
 			Expect(bufStr).To(ContainSubstring("Metrics:"))
-			Expect(bufStr).To(ContainSubstring("  metric.map: {\"metric1\": 10, \"metric2\": 11}"))
-			Expect(bufStr).To(ContainSubstring("  ingress.matched: 11"))
-			Expect(bufStr).To(ContainSubstring("  ingress.received: 5850203"))
-			Expect(bufStr).To(ContainSubstring("  notifier.dropped: 0"))
-			Expect(bufStr).To(ContainSubstring("  notifier.emails.failed: 0"))
-			Expect(bufStr).To(ContainSubstring("  notifier.emails.sent: 11"))
+			Expect(bufStr).To(ContainSubstring("  metric.float: 123.345"))
+			Expect(bufStr).To(ContainSubstring("  metric.int: 10"))
+			Expect(bufStr).To(ContainSubstring("  metric.string: expvarApp"))
+			Expect(bufStr).To(ContainSubstring("  metric.map: ")) // maps are unordered so `map[metric1:10 metric2:11]` prints in non-deterministic order
 			Expect(bufStr).To(ContainSubstring("Instance: 1"))
-			Expect(bufStr).To(ContainSubstring("Error: some error in getting metrics"))
+			Expect(bufStr).To(ContainSubstring("Error: unable to parse response: invalid character 'p' after top-level value"))
 		})
 
-		It("returns an error when template fails to execute", func() {
-			metrics := []agent.MetricOuput{}
-			err := json.Unmarshal([]byte(badJSONMetricsOutput), &metrics)
-			Expect(err).ToNot(HaveOccurred())
-			buf := &bytes.Buffer{}
-
-			v := views.New(views.WithWriter(buf))
-			err = v.Present(metrics)
-			Expect(err).To(HaveOccurred())
-		})
 	})
 
 	Context("with custom template", func() {
 		It("display the metrics data", func() {
-			metrics := []agent.MetricOuput{}
-			err := json.Unmarshal([]byte(jsonMetricsOutput), &metrics)
+			metrics := []agent.InstanceMetric{}
+			err := json.Unmarshal([]byte(getMetricsOutput), &metrics)
 			Expect(err).ToNot(HaveOccurred())
 
 			buf := &bytes.Buffer{}
@@ -61,7 +49,7 @@ var _ = Describe("Views", func() {
 			tmpl, err = tmpl.Parse(`
 				{{range .}}
 					Instance: {{.Instance}}
-					Output: {{.Output}}
+					Output: {{.Metrics}}
 					Error: {{.Error}}
 				{{end}}
 			`)
@@ -75,12 +63,12 @@ var _ = Describe("Views", func() {
 			Expect(bufStr).To(ContainSubstring("Instance: 0"))
 			Expect(bufStr).To(ContainSubstring("Output: "))
 			Expect(bufStr).To(ContainSubstring("Instance: 1"))
-			Expect(bufStr).To(ContainSubstring("Error: some error in getting metrics"))
+			Expect(bufStr).To(ContainSubstring("Error: unable to parse response: invalid character 'p' after top-level value"))
 		})
 
 		It("returns an error when template fails to execute", func() {
-			metrics := []agent.MetricOuput{}
-			err := json.Unmarshal([]byte(jsonMetricsOutput), &metrics)
+			metrics := []agent.InstanceMetric{}
+			err := json.Unmarshal([]byte(getMetricsOutput), &metrics)
 			Expect(err).ToNot(HaveOccurred())
 
 			buf := &bytes.Buffer{}
@@ -101,18 +89,24 @@ var _ = Describe("Views", func() {
 	})
 })
 
-var jsonMetricsOutput = `[{
-"Instance": 0,
-"Output": "{\"metric.map\": {\"metric1\": 10, \"metric2\": 11},\"ingress.matched\":11,\"ingress.received\":5850203,\"notifier.dropped\":0,\"notifier.emails.failed\":0,\"notifier.emails.sent\":11}",
-"Error": ""
-},{
-"Instance": 1,
-"Output": "",
-"Error": "some error in getting metrics"
-}] `
-
-var badJSONMetricsOutput = `[{
-"Instance": 0,
-"Output": "{\"ingress.matched\":,\"notifier.emails.sent\":11,}",
-"Error": ""
-}] `
+var getMetricsOutput = `
+[
+  {
+    "Instance": 0,
+    "Error": "",
+    "Metrics": {
+      "metric.float": 123.345,
+      "metric.int": 10,
+      "metric.map": {
+        "metric1": 10,
+        "metric2": 11
+      },
+      "metric.string": "expvarApp"
+    }
+  },
+  {
+    "Instance": 1,
+    "Error": "unable to parse response: invalid character 'p' after top-level value",
+    "Metrics": null
+  }
+]`

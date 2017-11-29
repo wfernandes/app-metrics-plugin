@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -12,50 +11,13 @@ import (
 
 	"code.cloudfoundry.org/cli/plugin/models"
 	"github.com/wfernandes/app-metrics-plugin/pkg/agent"
+	"github.com/wfernandes/app-metrics-plugin/pkg/parser"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Agent", func() {
-
-	It("returns error upon unsuccessful request", func() {
-		fakeApp := &plugin_models.GetAppModel{
-			RunningInstances: 1,
-			Instances: []plugin_models.GetApp_AppInstanceFields{
-				{
-					State: "running",
-				},
-			},
-			Routes: []plugin_models.GetApp_RouteSummary{
-				{
-					Domain: plugin_models.GetApp_DomainFields{
-						Name: "http://192.168.0.%31/", // To force an error in http.NewRequest
-					},
-				},
-			},
-		}
-		a := agent.New(fakeApp)
-		output, err := a.GetMetrics(context.Background())
-		Expect(err).ToNot(HaveOccurred())
-		Expect(output).To(HaveLen(1))
-		Expect(output[0].Error).ToNot(BeEmpty())
-	})
-
-	It("returns error if app has no routes", func() {
-		fakeApp := &plugin_models.GetAppModel{
-			RunningInstances: 1,
-			Instances: []plugin_models.GetApp_AppInstanceFields{
-				{
-					State: "running",
-				},
-			},
-			Routes: []plugin_models.GetApp_RouteSummary{},
-		}
-		a := agent.New(fakeApp)
-		_, err := a.GetMetrics(context.Background())
-		Expect(err).To(HaveOccurred())
-	})
 
 	It("makes request using domain name only if there is no host", func() {
 		fakeApp := &plugin_models.GetAppModel{
@@ -73,8 +35,9 @@ var _ = Describe("Agent", func() {
 				},
 			},
 		}
+
 		fakeClient := NewFakeClient()
-		a := agent.New(fakeApp, agent.WithClient(fakeClient))
+		a := agent.New(fakeApp, NewFakeParser(), agent.WithClient(fakeClient))
 		_, err := a.GetMetrics(context.Background())
 		Expect(err).ToNot(HaveOccurred())
 		Expect(fakeClient.LastRequest().URL.String()).To(Equal("http://domain.cf-app.com/debug/metrics"))
@@ -98,15 +61,17 @@ var _ = Describe("Agent", func() {
 			},
 		}
 		fakeClient := NewFakeClient()
-		a := agent.New(fakeApp, agent.WithClient(fakeClient))
+
+		a := agent.New(fakeApp, NewFakeParser(), agent.WithClient(fakeClient))
 		_, err := a.GetMetrics(context.Background())
+
 		Expect(err).ToNot(HaveOccurred())
 		Expect(fakeClient.LastRequest().URL.String()).To(Equal("http://my-app-host.domain.cf-app.com/debug/metrics"))
 	})
 
-	It("returns response body upon successful request", func() {
+	It("returns metric output upon successful request", func() {
 		fakeClient := NewFakeClient()
-		fakeClient.SetResponse("some response body")
+		fakeClient.SetResponse(expvarJSON)
 
 		fakeApp := &plugin_models.GetAppModel{
 			RunningInstances: 1,
@@ -124,16 +89,65 @@ var _ = Describe("Agent", func() {
 			},
 		}
 
-		a := agent.New(fakeApp, agent.WithClient(fakeClient))
-		output, err := a.GetMetrics(context.Background())
+		a := agent.New(fakeApp, parser.NewExpvar(), agent.WithClient(fakeClient))
+		metrics, err := a.GetMetrics(context.Background())
 
 		request := fakeClient.LastRequest()
 		Expect(err).ToNot(HaveOccurred())
-		Expect(output).To(HaveLen(1))
-		Expect(output[0].Instance).To(Equal(0))
-		Expect(output[0].Output).To(Equal("some response body"))
-		Expect(output[0].Error).To(BeEmpty())
+		Expect(metrics).To(HaveLen(1))
+		metric := metrics[0]
+		Expect(metric.Instance).To(Equal(0))
+		Expect(metric.Error).To(BeEmpty())
+		Expect(metric.Metrics).To(HaveLen(5))
+		Expect(metric.Metrics).To(HaveKeyWithValue("metric.float", 123.345))
+		Expect(metric.Metrics).To(HaveKeyWithValue("metric.string", "expvarApp"))
+		Expect(metric.Metrics).To(HaveKeyWithValue("metric.int", float64(10)))
+		Expect(metric.Metrics["cmdline"]).To(ContainElement("bin/event-alerts"))
+		Expect(metric.Metrics["metric.map"]).To(HaveKeyWithValue("metric1", float64(10)))
+		Expect(metric.Metrics["metric.map"]).To(HaveKeyWithValue("metric2", float64(11)))
 		Expect(request.Header.Get("X-CF-APP-INSTANCE")).ToNot(BeEmpty())
+	})
+
+	It("returns error upon unsuccessful request", func() {
+		fakeApp := &plugin_models.GetAppModel{
+			RunningInstances: 1,
+			Instances: []plugin_models.GetApp_AppInstanceFields{
+				{
+					State: "running",
+				},
+			},
+			Routes: []plugin_models.GetApp_RouteSummary{
+				{
+					Domain: plugin_models.GetApp_DomainFields{
+						Name: "http://192.168.0.%31/", // To force an error in http.NewRequest
+					},
+				},
+			},
+		}
+
+		a := agent.New(fakeApp, NewFakeParser())
+		instanceMetrics, err := a.GetMetrics(context.Background())
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(instanceMetrics).To(HaveLen(1))
+		Expect(instanceMetrics[0].Error).ToNot(BeEmpty())
+	})
+
+	It("returns error if app has no routes", func() {
+		fakeApp := &plugin_models.GetAppModel{
+			RunningInstances: 1,
+			Instances: []plugin_models.GetApp_AppInstanceFields{
+				{
+					State: "running",
+				},
+			},
+			Routes: []plugin_models.GetApp_RouteSummary{},
+		}
+
+		a := agent.New(fakeApp, NewFakeParser())
+		_, err := a.GetMetrics(context.Background())
+
+		Expect(err).To(HaveOccurred())
 	})
 
 	It("returns output error upon failing request", func() {
@@ -156,13 +170,13 @@ var _ = Describe("Agent", func() {
 			},
 		}
 
-		a := agent.New(fakeApp, agent.WithClient(fakeClient))
+		a := agent.New(fakeApp, NewFakeParser(), agent.WithClient(fakeClient))
 		output, err := a.GetMetrics(context.Background())
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(output).To(HaveLen(1))
 		Expect(output[0].Instance).To(Equal(0))
-		Expect(output[0].Output).To(BeEmpty())
+		Expect(output[0].Metrics).To(BeEmpty())
 		Expect(output[0].Error).To(Equal("some request error"))
 	})
 
@@ -185,20 +199,20 @@ var _ = Describe("Agent", func() {
 			},
 		}
 
-		a := agent.New(fakeApp, agent.WithClient(fakeClient))
+		a := agent.New(fakeApp, NewFakeParser(), agent.WithClient(fakeClient))
 		output, err := a.GetMetrics(context.Background())
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(output).To(HaveLen(1))
 		Expect(output[0].Instance).To(Equal(0))
-		Expect(output[0].Output).To(BeEmpty())
+		Expect(output[0].Metrics).To(BeEmpty())
 		Expect(output[0].Error).To(Equal(io.ErrUnexpectedEOF.Error()))
 	})
 
-	It("returns output error when reponse code is non-200s", func() {
+	It("returns output error when failing to parse metric json", func() {
 		fakeClient := NewFakeClient()
 		fakeClient.SetResponse("404 page not found\n")
-		fakeClient.SetResponseStatus(http.StatusNotFound)
+
 		fakeApp := &plugin_models.GetAppModel{
 			RunningInstances: 1,
 			Instances: []plugin_models.GetApp_AppInstanceFields{
@@ -214,14 +228,13 @@ var _ = Describe("Agent", func() {
 				},
 			},
 		}
-		a := agent.New(fakeApp, agent.WithClient(fakeClient))
-		output, err := a.GetMetrics(context.Background())
+
+		a := agent.New(fakeApp, parser.NewExpvar(), agent.WithClient(fakeClient))
+		instanceMetrics, err := a.GetMetrics(context.Background())
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(output).To(HaveLen(1))
-		Expect(output[0].Instance).To(Equal(0))
-		Expect(output[0].Output).To(BeEmpty())
-		Expect(output[0].Error).To(Equal("404 page not found\n"))
+		Expect(instanceMetrics).To(HaveLen(1))
+		Expect(instanceMetrics[0].Error).ToNot(BeEmpty())
 	})
 
 	It("sends GET request with X-CF-APP-INSTANCE header for app with multiple instances", func() {
@@ -248,8 +261,8 @@ var _ = Describe("Agent", func() {
 				},
 			},
 		}
-		a := agent.New(fakeApp, agent.WithClient(fakeClient))
 
+		a := agent.New(fakeApp, NewFakeParser(), agent.WithClient(fakeClient))
 		_, err := a.GetMetrics(context.Background())
 
 		Expect(err).ToNot(HaveOccurred())
@@ -260,68 +273,15 @@ var _ = Describe("Agent", func() {
 		}
 		Expect(headers).To(ConsistOf("some-app-guid:0", "some-app-guid:2"))
 	})
-
-	It("calls parser for successful response", func() {
-		fakeClient := NewFakeClient()
-		fakeClient.SetResponse("some response body")
-
-		fakeApp := &plugin_models.GetAppModel{
-			RunningInstances: 1,
-			Instances: []plugin_models.GetApp_AppInstanceFields{
-				{
-					State: "running",
-				},
-			},
-			Routes: []plugin_models.GetApp_RouteSummary{
-				{
-					Domain: plugin_models.GetApp_DomainFields{
-						Name: "domain.cf-app.com",
-					},
-				},
-			},
-		}
-		fakeParser := NewFakeParser()
-
-		a := agent.New(fakeApp, agent.WithClient(fakeClient), agent.WithParser(fakeParser))
-		output, err := a.GetMetrics(context.Background())
-
-		Expect(err).ToNot(HaveOccurred())
-		Expect(string(fakeParser.ParseCalledWith())).To(BeEquivalentTo("some response body"))
-		Expect(output).To(HaveLen(1))
-		Expect(output[0].Output).To(Equal("parsed some response body"))
-	})
-
-	It("returns original unparsed output if parser returns an error", func() {
-		fakeClient := NewFakeClient()
-		fakeClient.SetResponse("some response body")
-
-		fakeApp := &plugin_models.GetAppModel{
-			RunningInstances: 1,
-			Instances: []plugin_models.GetApp_AppInstanceFields{
-				{
-					State: "running",
-				},
-			},
-			Routes: []plugin_models.GetApp_RouteSummary{
-				{
-					Domain: plugin_models.GetApp_DomainFields{
-						Name: "domain.cf-app.com",
-					},
-				},
-			},
-		}
-		fakeParser := NewFakeParser()
-		fakeParser.SetError(errors.New("some parser error"))
-
-		a := agent.New(fakeApp, agent.WithClient(fakeClient), agent.WithParser(fakeParser))
-		output, err := a.GetMetrics(context.Background())
-
-		Expect(err).ToNot(HaveOccurred())
-		Expect(output).To(HaveLen(1))
-		Expect(output[0].Output).To(Equal("some response body"))
-	})
-
 })
+
+var expvarJSON = `{
+"cmdline": ["bin/event-alerts"],
+"metric.float": 123.345,
+"metric.int": 10,
+"metric.map": {"metric1": 10, "metric2": 11},
+"metric.string": "expvarApp"
+}`
 
 type FakeParser struct {
 	mu              sync.Mutex
@@ -343,12 +303,12 @@ func (p *FakeParser) SetError(e error) {
 	p.err = e
 }
 
-func (p *FakeParser) Parse(b []byte) ([]byte, error) {
+func (p *FakeParser) Parse(b []byte) (map[string]interface{}, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
 	p.parseCalledWith = b
-	return []byte(fmt.Sprintf("parsed %s", b)), p.err
+	return nil, p.err
 }
 
 func (p *FakeParser) ParseCalledWith() []byte {
@@ -359,19 +319,17 @@ func (p *FakeParser) ParseCalledWith() []byte {
 }
 
 type FakeClient struct {
-	mu             sync.Mutex
-	requests       []*http.Request
-	body           string
-	err            error
-	readerFail     bool
-	responseStatus int
+	mu         sync.Mutex
+	requests   []*http.Request
+	body       string
+	err        error
+	readerFail bool
 }
 
 func NewFakeClient() *FakeClient {
 	return &FakeClient{
-		requests:       make([]*http.Request, 0),
-		body:           "some default response",
-		responseStatus: http.StatusOK,
+		requests: make([]*http.Request, 0),
+		body:     "some default response",
 	}
 }
 
@@ -388,8 +346,7 @@ func (f *FakeClient) Do(r *http.Request) (*http.Response, error) {
 		}
 	} else {
 		resp = &http.Response{
-			StatusCode: f.responseStatus,
-			Body:       ioutil.NopCloser(bytes.NewBufferString(f.body)),
+			Body: ioutil.NopCloser(bytes.NewBufferString(f.body)),
 		}
 	}
 
@@ -422,13 +379,6 @@ func (f *FakeClient) SetResponse(body string) {
 	defer f.mu.Unlock()
 
 	f.body = body
-}
-
-func (f *FakeClient) SetResponseStatus(status int) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-
-	f.responseStatus = status
 }
 
 func (f *FakeClient) SetBadResponse() {
