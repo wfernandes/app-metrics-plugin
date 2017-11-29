@@ -72,7 +72,7 @@ cf uninstall-plugin AppMetricsPlugin
 ./scripts/test.sh
 ```
 
-## Sample Output
+## Sample Outputs
 ```bash
 # Default Template
 $ cf app-metrics expvar-sample -endpoint /debug/vars
@@ -90,7 +90,8 @@ Metrics:
   metric.int: 10
   metric.map: map[metric1:10 metric2:11]
   metric.string: expvarApp
-
+```
+```
 # Raw output
 $ cf app-metrics expvar-sample -endpoint /debug/vars -raw | jq .
 [
