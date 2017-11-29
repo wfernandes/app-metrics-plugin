@@ -37,6 +37,9 @@ and `memstats` as they tend to clutter up the output.
 
 ## Install
 ```bash
+# To add the CF-Community plugin repo (if not already added)
+cf add-plugin-repo CF-Community https://plugins.cloudfoundry.org
+
 # To install latest release
 cf install-plugin -r CF-Community "AppsMetrics Plugin"
 
