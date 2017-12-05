@@ -1,0 +1,7 @@
+---
+applications:
+- name: prom-sample
+  memory: 512M
+  instances: 1
+  buildpack: binary_buildpack
+  command: ./prometheus
