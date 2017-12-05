@@ -286,7 +286,6 @@ var expvarJSON = `{
 type FakeParser struct {
 	mu              sync.Mutex
 	parseCalledWith []byte
-	err             error
 }
 
 func NewFakeParser() *FakeParser {
@@ -296,19 +295,12 @@ func NewFakeParser() *FakeParser {
 	}
 }
 
-func (p *FakeParser) SetError(e error) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	p.err = e
-}
-
 func (p *FakeParser) Parse(b []byte) (map[string]interface{}, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
 	p.parseCalledWith = b
-	return nil, p.err
+	return nil, nil
 }
 
 func (p *FakeParser) ParseCalledWith() []byte {
