@@ -69,6 +69,33 @@ var _ = Describe("Agent", func() {
 		Expect(fakeClient.LastRequest().URL.String()).To(Equal("http://my-app-host.domain.cf-app.com/debug/metrics"))
 	})
 
+	It("makes request to specified metrics endpoint", func() {
+		fakeApp := &plugin_models.GetAppModel{
+			RunningInstances: 1,
+			Instances: []plugin_models.GetApp_AppInstanceFields{
+				{
+					State: "running",
+				},
+			},
+			Routes: []plugin_models.GetApp_RouteSummary{
+				{
+					Host: "my-app-host",
+					Domain: plugin_models.GetApp_DomainFields{
+						Name: "domain.cf-app.com",
+					},
+				},
+			},
+		}
+		fakeClient := NewFakeClient()
+
+		a := agent.New(fakeApp, NewFakeParser(), agent.WithClient(fakeClient), agent.WithMetricsPath("/some/other/path"))
+		_, err := a.GetMetrics(context.Background())
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(fakeClient.LastRequest().URL.String()).To(Equal("http://my-app-host.domain.cf-app.com/some/other/path"))
+
+	})
+
 	It("returns metric output upon successful request", func() {
 		fakeClient := NewFakeClient()
 		fakeClient.SetResponse(expvarJSON)
@@ -209,7 +236,7 @@ var _ = Describe("Agent", func() {
 		Expect(output[0].Error).To(Equal(io.ErrUnexpectedEOF.Error()))
 	})
 
-	It("returns output error when failing to parse metric json", func() {
+	It("returns output error when failing to parse", func() {
 		fakeClient := NewFakeClient()
 		fakeClient.SetResponse("404 page not found\n")
 

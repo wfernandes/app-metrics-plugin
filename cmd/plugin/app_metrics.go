@@ -35,7 +35,7 @@ func (c *AppsMetricsPlugin) GetMetadata() plugin.PluginMetadata {
 		Commands: []plugin.Command{
 			{
 				Name:     "app-metrics",
-				HelpText: "Hits the metrics endpoint across all your app instances",
+				HelpText: "Hits the expvar metrics endpoint across all your app instances",
 
 				UsageDetails: plugin.Usage{
 					Usage: "cf app-metrics APP_NAME",
@@ -43,6 +43,17 @@ func (c *AppsMetricsPlugin) GetMetadata() plugin.PluginMetadata {
 						"endpoint": "path of the metrics endpoint",
 						"template": "path of the template files to render metrics",
 						"raw":      "prints raw json output",
+					},
+				},
+			},
+			{
+				Name:     "app-metrics-prometheus",
+				HelpText: "Hits the prometheus metrics endpoint across all your app instances",
+
+				UsageDetails: plugin.Usage{
+					Usage: "cf app-metrics-prometheus APP_NAME",
+					Options: map[string]string{
+						"endpoint": "path of the metrics endpoint",
 					},
 				},
 			},
@@ -61,14 +72,20 @@ func (c *AppsMetricsPlugin) Run(cliConnection plugin.CliConnection, args []strin
 			return
 		}
 
-		c.getMetrics(cliConnection, args)
+		c.getExpvarMetrics(cliConnection, args)
+	case "app-metrics-prometheus":
+		if len(args) < 2 {
+			c.ui.Say(c.GetMetadata().Commands[1].UsageDetails.Usage)
+			return
+		}
+		c.getPrometheusMetrics(cliConnection, args)
 	case "CLI-MESSAGE-UNINSTALL":
 		c.ui.Say("Thank you for using app-metrics")
 	}
 
 }
 
-func (c *AppsMetricsPlugin) getMetrics(cliConnection plugin.CliConnection, args []string) {
+func (c *AppsMetricsPlugin) getExpvarMetrics(cliConnection plugin.CliConnection, args []string) {
 	// Verify we have access to the app
 	app, err := cliConnection.GetApp(args[1])
 	if err != nil {
@@ -129,6 +146,44 @@ func (c *AppsMetricsPlugin) getMetrics(cliConnection plugin.CliConnection, args 
 		c.ui.Warn(err.Error())
 		c.printDefault(metrics)
 	}
+}
+
+func (c *AppsMetricsPlugin) getPrometheusMetrics(cliConnection plugin.CliConnection, args []string) {
+	// Verify we have access to the app
+	app, err := cliConnection.GetApp(args[1])
+	if err != nil {
+		c.ui.Failed(err.Error())
+		return
+	}
+
+	// Parse any flags that were provided
+	fc, err := parseArguments(args)
+	if err != nil {
+		c.ui.Failed(err.Error())
+		return
+	}
+
+	var client *agent.Agent
+	if fc.IsSet("endpoint") {
+		client = agent.New(
+			&app,
+			parser.NewPrometheus(),
+			agent.WithMetricsPath(fc.String("endpoint")))
+	} else {
+		client = agent.New(
+			&app,
+			parser.NewPrometheus(),
+		)
+	}
+
+	// Make the request(s) and get the data
+	metrics, err := client.GetMetrics(context.Background())
+	if err != nil {
+		c.ui.Failed("unable to get metrics: %s\n", err)
+		return
+	}
+	c.printDefault(metrics)
+
 }
 
 func (c *AppsMetricsPlugin) printDefault(metrics []agent.InstanceMetric) {

@@ -13,7 +13,9 @@ var _ = Describe("Prometheus", func() {
 
 	It("parses metrics into a map", func() {
 		p := parser.NewPrometheus()
+
 		metrics, err := p.Parse([]byte(prometheusOutput))
+
 		Expect(err).ToNot(HaveOccurred())
 		Expect(metrics).ToNot(BeEmpty())
 		b, err := json.Marshal(metrics)
@@ -23,7 +25,9 @@ var _ = Describe("Prometheus", func() {
 
 	It("returns error and empty map if error occurs in parsing", func() {
 		p := parser.NewPrometheus()
+
 		metrics, err := p.Parse([]byte("bla"))
+
 		Expect(err).To(HaveOccurred())
 		Expect(metrics).To(BeEmpty())
 	})
@@ -48,6 +52,11 @@ go_info{version="go1.9.1"} 1
 # HELP go_memstats_alloc_bytes Number of bytes allocated and still in use.
 # TYPE go_memstats_alloc_bytes gauge
 go_memstats_alloc_bytes 483504
+# HELP rpc_durations_histogram_seconds RPC latency distributions.
+# TYPE rpc_durations_histogram_seconds histogram
+rpc_durations_histogram_seconds_bucket{le="+Inf"} 0
+rpc_durations_histogram_seconds_sum 0
+rpc_durations_histogram_seconds_count 0
 `
 
-var promJSON = `{"go_gc_duration_seconds":{"name":"go_gc_duration_seconds","help":"A summary of the GC invocation durations.","type":2,"metric":[{"summary":{"sample_count":0,"sample_sum":0,"quantile":[{"quantile":0,"value":0},{"quantile":0.25,"value":0},{"quantile":0.5,"value":0},{"quantile":0.75,"value":0},{"quantile":1,"value":0}]}}]},"go_goroutines":{"name":"go_goroutines","help":"Number of goroutines that currently exist.","type":1,"metric":[{"gauge":{"value":6}}]},"go_info":{"name":"go_info","help":"Information about the Go environment.","type":1,"metric":[{"label":[{"name":"version","value":"go1.9.1"}],"gauge":{"value":1}}]},"go_memstats_alloc_bytes":{"name":"go_memstats_alloc_bytes","help":"Number of bytes allocated and still in use.","type":1,"metric":[{"gauge":{"value":483504}}]}}`
+var promJSON = `{"go_gc_duration_seconds":{"name":"go_gc_duration_seconds","help":"A summary of the GC invocation durations.","type":"SUMMARY","metrics":[{"quantiles":{"0":"0","0.25":"0","0.5":"0","0.75":"0","1":"0"},"count":"0","sum":"0"}]},"go_goroutines":{"name":"go_goroutines","help":"Number of goroutines that currently exist.","type":"GAUGE","metrics":[{"value":"6"}]},"go_info":{"name":"go_info","help":"Information about the Go environment.","type":"GAUGE","metrics":[{"labels":{"version":"go1.9.1"},"value":"1"}]},"go_memstats_alloc_bytes":{"name":"go_memstats_alloc_bytes","help":"Number of bytes allocated and still in use.","type":"GAUGE","metrics":[{"value":"483504"}]},"rpc_durations_histogram_seconds":{"name":"rpc_durations_histogram_seconds","help":"RPC latency distributions.","type":"HISTOGRAM","metrics":[{"buckets":{"+Inf":"0"},"count":"0","sum":"0"}]}}`

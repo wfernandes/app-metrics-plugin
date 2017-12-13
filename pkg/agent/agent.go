@@ -73,7 +73,6 @@ func (a *Agent) GetMetrics(ctx context.Context) (outputs []InstanceMetric, err e
 		sort.Sort(byInstance(outputs))
 	}()
 
-	// TODO we need to fan-in results
 	results := make(chan *InstanceMetric, a.app.RunningInstances)
 
 	for i, instance := range a.app.Instances {
