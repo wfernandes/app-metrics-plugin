@@ -30,11 +30,6 @@ your app instances. This means that you will be getting metrics from a random in
 This plugin will hit your metrics endpoint (defaults to `/debug/metrics`) across all your app instances and display the
 output in a human readable fashion.
 
-### Expvar
-
-This plugin **currently** parses out expvar style metrics endpoint only. By default it hides the properties `cmdline`
-and `memstats` as they tend to clutter up the output.
-
 ## Install
 ```bash
 # To add the CF-Community plugin repo (if not already added)
@@ -47,20 +42,44 @@ cf install-plugin -r CF-Community "AppsMetrics Plugin"
 ./scripts/install.sh
 ```
 
+### Expvar
+
+By default it hides the properties `cmdline` and `memstats` as they tend to clutter up the output.
+
+### Prometheus
+
+Uses functionality in the [prom2json][p2j] to display prometheus metrics in json format.
+
 ## Usage
 
+This plugin provides two commands.
+
+`app-metrics` command allows you to obtain metrics from apps instrumented with expvar.
 ```
 NAME:
-   app-metrics - Hits the metrics endpoint across all your app instances
+   app-metrics - Hits the expvar metrics endpoint across all your app instances
 
 USAGE:
    cf app-metrics APP_NAME
 
 OPTIONS:
+   -template       path of the template files to render metrics
    -endpoint       path of the metrics endpoint
    -raw            prints raw json output
-   -template       path of the template files to render metrics
 
+```
+
+`app-metrics-prometheus` command allows you to obtain metrics from apps instrumented with prometheus.
+
+```
+NAME:
+   app-metrics-prometheus - Hits the prometheus metrics endpoint across all your app instances
+
+USAGE:
+   cf app-metrics-prometheus APP_NAME
+
+OPTIONS:
+   -endpoint       path of the metrics endpoint
 ```
 
 ## Uninstall
@@ -147,3 +166,4 @@ In order to create a new release, follow these steps
 [expvar]:           https://golang.org/pkg/expvar/
 [godropwizard]:     https://github.com/rcrowley/go-metrics
 [project]:          https://github.com/wfernandes/app-metrics-plugin/projects/1
+[p2j]:              https://github.com/prometheus/prom2json
