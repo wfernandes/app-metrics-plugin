@@ -5,31 +5,6 @@ This is a CF CLI plugin. See [here][cf-cli] for more details.
 
 This plugin hits your app's metrics endpoint **across all your app instances** and displays human readable output.
 
-## Purpose
-Instrumenting applications with various metrics to provide insight into its operation is an important practice for
-modern day developers. I shouldn't have to explain this further.
-
-
-The purpose of this plugin is to be able hit the metrics endpoint across all your application instances.
-There are many ways to instrument your applications including [Dropwizard][dropwizard], [Prometheus][prometheus] and
-[go-metrics][godropwizard].
-
-
-For golang applications, there is a package called [Expvar][expvar] available as part of the standard library which
-makes your metrics available via a HTTP endpoint
-
-### Problem this plugin alleviates
-
-So if you have an app deployed on Cloudfoundry at `myapp.domain.cf-app.com` you can `GET` its metrics by hitting
-`http://myapp.domain.cf-app.com/metrics`.
-
-However, if you scale up the application to greater than one instance, Cloudfoundry's router will load balance your requests across
-your app instances. This means that you will be getting metrics from a random instance every time.
-
-
-This plugin will hit your metrics endpoint (defaults to `/debug/metrics`) across all your app instances and display the
-output in a human readable fashion.
-
 ## Install
 ```bash
 # To add the CF-Community plugin repo (if not already added)
@@ -41,14 +16,6 @@ cf install-plugin -r CF-Community "AppsMetrics Plugin"
 # To install a dev build of the plugin
 ./scripts/install.sh
 ```
-
-### Expvar
-
-By default it hides the properties `cmdline` and `memstats` as they tend to clutter up the output.
-
-### Prometheus
-
-Uses functionality in the [prom2json][p2j] to display prometheus metrics in json format.
 
 ## Usage
 
@@ -87,6 +54,39 @@ OPTIONS:
 ```bash
 cf uninstall-plugin AppMetricsPlugin
 ```
+
+## Purpose
+Instrumenting applications with various metrics to provide insight into its operation is an important practice for
+modern day developers. I shouldn't have to explain this further.
+
+
+The purpose of this plugin is to be able hit the metrics endpoint across all your application instances.
+There are many ways to instrument your applications including [Dropwizard][dropwizard], [Prometheus][prometheus] and
+[go-metrics][godropwizard].
+
+
+For golang applications, there is a package called [Expvar][expvar] available as part of the standard library which
+makes your metrics available via a HTTP endpoint
+
+### Problem this plugin alleviates
+
+So if you have an app deployed on Cloudfoundry at `myapp.domain.cf-app.com` you can `GET` its metrics by hitting
+`http://myapp.domain.cf-app.com/metrics`.
+
+However, if you scale up the application to greater than one instance, Cloudfoundry's router will load balance your requests across
+your app instances. This means that you will be getting metrics from a random instance every time.
+
+
+This plugin will hit your metrics endpoint (defaults to `/debug/metrics`) across all your app instances and display the
+output in a human readable fashion.
+
+### Expvar
+
+By default it hides the properties `cmdline` and `memstats` as they tend to clutter up the output.
+
+### Prometheus
+
+Uses functionality in the [prom2json][p2j] to display prometheus metrics in json format.
 
 ## Tests
 
