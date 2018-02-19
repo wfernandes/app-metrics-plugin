@@ -21,7 +21,7 @@ type AppsMetricsPlugin struct {
 
 func (c *AppsMetricsPlugin) GetMetadata() plugin.PluginMetadata {
 	return plugin.PluginMetadata{
-		Name: "AppMetricsPlugin",
+		Name: "app-metrics",
 		Version: plugin.VersionType{
 			Major: 1,
 			Minor: 0,

@@ -11,7 +11,7 @@ This plugin hits your app's metrics endpoint **across all your app instances** a
 cf add-plugin-repo CF-Community https://plugins.cloudfoundry.org
 
 # To install latest release
-cf install-plugin -r CF-Community "AppsMetrics Plugin"
+cf install-plugin -r CF-Community app-metrics
 
 # To install a dev build of the plugin
 ./scripts/install.sh
@@ -52,7 +52,7 @@ OPTIONS:
 ## Uninstall
 
 ```bash
-cf uninstall-plugin AppMetricsPlugin
+cf uninstall-plugin app-metrics
 ```
 
 ## Purpose
