@@ -1,4 +1,4 @@
-- name: AppsMetrics Plugin
+- name: app-metrics
   description: This plugin allows you to hit a metrics endpoint across all your app instances
   version: __TAG__
   created: 2017-11-24T00:00:00Z
